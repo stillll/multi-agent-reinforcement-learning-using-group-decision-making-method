@@ -3,3 +3,7 @@
 .idea/modules.xml
 .idea/multi-agent-reinforcement-learning-using-group-decision-making-method.iml
 .idea/vcs.xml
+*.pyc
+.vscode/settings.json
+.pytest_cache/v/cache/stepwise
+.pytest_cache/v/cache/nodeids
