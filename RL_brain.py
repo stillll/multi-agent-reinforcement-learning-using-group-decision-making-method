@@ -86,11 +86,16 @@ class DeepQNetwork:
                 b1 = tf.get_variable('b1', [1, n_l1], initializer=b_initializer, collections=c_names)
                 l1 = tf.nn.relu(tf.matmul(self.s, w1) + b1)
 
+            with tf.variable_scope('ladd'):
+                wadd = tf.get_variable('wadd', [n_l1,n_l1], initializer=w_initializer, collections=c_names)
+                badd = tf.get_variable('badd', [1, n_l1], initializer=b_initializer, collections=c_names)
+                ladd = tf.nn.relu(tf.matmul(l1, wadd) + badd)
+
             # second layer. collections is used later when assign to target net
             with tf.variable_scope('l2'):
                 w2 = tf.get_variable('w2', [n_l1, self.n_actions*self.max_coop], initializer=w_initializer, collections=c_names)
                 b2 = tf.get_variable('b2', [1, self.n_actions*self.max_coop], initializer=b_initializer, collections=c_names)
-                self.q_eval = tf.matmul(l1, w2) + b2
+                self.q_eval = tf.matmul(ladd, w2) + b2
 
         with tf.variable_scope('loss'):
             self.loss = tf.reduce_mean(tf.squared_difference(self.q_target, self.q_eval))
@@ -109,11 +114,16 @@ class DeepQNetwork:
                 b1 = tf.get_variable('b1', [1, n_l1], initializer=b_initializer, collections=c_names)
                 l1 = tf.nn.relu(tf.matmul(self.s_, w1) + b1)
 
+            with tf.variable_scope('ladd'):
+                wadd = tf.get_variable('wadd', [n_l1, n_l1], initializer=w_initializer, collections=c_names)
+                badd = tf.get_variable('badd', [1, n_l1], initializer=b_initializer, collections=c_names)
+                ladd = tf.nn.relu(tf.matmul(l1, wadd) + badd)
+
             # second layer. collections is used later when assign to target net
             with tf.variable_scope('l2'):
                 w2 = tf.get_variable('w2', [n_l1, self.n_actions*self.max_coop], initializer=w_initializer, collections=c_names)
                 b2 = tf.get_variable('b2', [1, self.n_actions*self.max_coop], initializer=b_initializer, collections=c_names)
-                self.q_next = tf.matmul(l1, w2) + b2
+                self.q_next = tf.matmul(ladd, w2) + b2
 
     def store_transition(self, s, a, r, s_):
         if not hasattr(self, 'memory_counter'):
@@ -221,7 +231,7 @@ class DeepQNetwork:
         _, self.cost = self.sess.run([self._train_op, self.loss],
                                      feed_dict={self.s: batch_memory[:, :self.n_features*self.max_coop],
                                                 self.q_target: q_target})
-        print("cost:", self.cost, '\n')
+        #print("cost:", self.cost, '\n')
         if flag is True:
             self.cost_his.append(self.cost)
 
@@ -235,6 +245,7 @@ class DeepQNetwork:
         plt.ylabel('Cost')
         plt.xlabel('episode')
         plt.show()
+        
 
 
 
