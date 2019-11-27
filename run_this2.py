@@ -5,7 +5,6 @@ import itertools as itr
 
 
 def coop_set_and_coop_state(agent_id, env_s, pow_set):
-    max_value = -10
     max_value = -100000000
     coop_state_i = np.array([])
     coop_set = np.array([])
