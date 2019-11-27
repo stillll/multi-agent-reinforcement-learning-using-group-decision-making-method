@@ -6,6 +6,9 @@ import itertools as itr
 
 def coop_set_and_coop_state(agent_id, env_s, pow_set):
     max_value = -10
+    max_value = -100000000
+    coop_state_i = np.array([])
+    coop_set = np.array([])
     for each in pow_set:  # 'each' is an array, subsets with different lengths
         for each_ in each:  # 'each_' is a array, a specific item in a subset which has specific length
             if each_[0] == agent_id:
