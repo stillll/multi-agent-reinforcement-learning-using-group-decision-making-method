@@ -2,12 +2,15 @@ from maze_env2 import Maze
 from RL_brain import DeepQNetwork
 import numpy as np
 import itertools as itr
+from GDM import GroupDM
+np.random.seed(0)
 
 
 def coop_set_and_coop_state(agent_id, env_s, pow_set):
     max_value = -100000000
     coop_state_i = np.array([])
     coop_set = np.array([])
+    q_v = []
     for each in pow_set:  # 'each' is an array, subsets with different lengths
         for each_ in each:  # 'each_' is a array, a specific item in a subset which has specific length
             if each_[0] == agent_id:
@@ -19,16 +22,17 @@ def coop_set_and_coop_state(agent_id, env_s, pow_set):
                 coop_state = env_s[r]
                 if len(coop_state) < env.n_features*env.max_coop:
                     actual_len = len(coop_state)
-                    coop_state = np.append(coop_state, [-999]*(env.max_coop*env.n_features-actual_len))
+                    coop_state = np.append(coop_state, [-99]*(env.max_coop*env.n_features-actual_len))
                 q_values = RL.value_func(coop_state)
                 for one in q_values[0, :actual_coop*env.n_actions]:
                     tmp_value += one
                 tmp_value /= actual_coop
                 if tmp_value > max_value:
+                    q_v = q_values[0, :actual_coop*env.n_actions]
                     max_value = tmp_value
                     coop_state_i = coop_state
                     coop_set = each_
-    return coop_state_i, coop_set
+    return coop_state_i, coop_set, max_value, q_v
 
 
 def run_maze():
@@ -39,7 +43,7 @@ def run_maze():
         pow_set.append(np.array(list(itr.permutations(all_agent_id, i))))
     reward_his = []
     cumulate_reward = 0
-    for episode in range(100000):
+    for episode in range(500):
         # initial observation
         print("episode", episode, '\n')
         env.reset()  # init env
@@ -49,9 +53,11 @@ def run_maze():
         while True:
             # RL choose action based on observation and suggestion for every agents
             env_s = env_s_
-            join_act = []
-            n_obv = []
-            for i in range(env.n_agents):
+            join_act = []  # all agents join actions for this step
+            n_obv = []  # all agents' coop state of this step
+            av_values = []  # average values of all agents
+            all_coop_sets = []  # all agents' coop set
+            for i in range(env.n_agents):  # agents produce their prms and ect.
                 """
                 coop_set = coop_set(i)
                 ob = obv(i,coop_set)
@@ -59,9 +65,26 @@ def run_maze():
                 suggestion = GDM(Q)
                 choose_action(i, suggestion)
                 """
-                observation, coop_set = coop_set_and_coop_state(i, env_s, pow_set)
+                observation, coop_set, wight, q_v = coop_set_and_coop_state(i, env_s, pow_set)
                 n_obv.append(observation)
-                action = RL.choose_action(observation)
+                all_coop_sets.append(coop_set)
+                av_values.append(wight)
+                q_v_ = np.exp(q_v) / sum(np.exp(q_v))  # softmax q values
+                for k in range(len(coop_set)):
+                    gdm.prefer_relation_mtx(i, coop_set[k], q_v_[k*env.n_actions:(k+1)*env.n_actions])
+                #action = RL.choose_action(observation)
+                #join_act.append(action)
+
+            for i in range(env.n_agents):  # agents get their aggregate prms and choose action by the suggestion
+                wights = []
+                denominator = 0  # 分母
+                for each in gdm.who_give_suggestion[i]:
+                    denominator += av_values[each]
+                for e in gdm.who_give_suggestion[i]:
+                    wights.append(av_values[e]/denominator)
+                a_prm = gdm.aggregate_prms(i, wights)
+                sugg = gdm.a_prm_to_sugg(a_prm)
+                action = np.random.choice(range(env.n_actions), p=sugg)
                 join_act.append(action)
 
             # RL take action and get next observation and reward
@@ -103,9 +126,14 @@ def plot_reward(reward_his):
     plt.xlabel('episode')
     plt.show()
 
+
 if __name__ == "__main__":
     # maze game
     env = Maze()
+
+    gdm = GroupDM(n_actions=env.n_actions,
+                  n_agents=env.n_agents,
+                  max_coop=env.max_coop)
 
     RL = DeepQNetwork(max_coop=env.max_coop,
                       n_agents=env.n_agents,
