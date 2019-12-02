@@ -155,6 +155,34 @@ class DeepQNetwork:
         v = self.sess.run(self.q_eval, feed_dict={self.s: observation})
         return v
 
+    def coop_set_and_coop_state(self, agent_id, env_s, pow_set):
+        max_value = -100000000
+        coop_state_i = np.array([])
+        coop_set = np.array([])
+        q_v = []
+        for each in pow_set:  # 'each' is an array, subsets with different lengths
+            for each_ in each:  # 'each_' is a array, a specific item in a subset which has specific length
+                if each_[0] == agent_id:
+                    actual_coop = len(each_)
+                    tmp_value = 0
+                    y = [a * 2 for a in each_]
+                    x = [a + 1 for a in y]
+                    r = sorted(y + x)
+                    coop_state = env_s[r]
+                    if len(coop_state) < self.n_features * self.max_coop:
+                        actual_len = len(coop_state)
+                        coop_state = np.append(coop_state, [-99] * (self.max_coop * self.n_features - actual_len))
+                    q_values = self.value_func(coop_state)
+                    for one in q_values[0, :actual_coop * self.n_actions]:
+                        tmp_value += one
+                    tmp_value /= actual_coop
+                    if tmp_value > max_value:
+                        q_v = q_values[0, :actual_coop * self.n_actions]
+                        max_value = tmp_value
+                        coop_state_i = coop_state
+                        coop_set = each_
+        return coop_state_i, coop_set, max_value, q_v
+
     def learn(self, flag):
         # check to replace target parameters
         if self.learn_step_counter % self.replace_target_iter == 0:
