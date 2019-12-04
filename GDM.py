@@ -12,8 +12,20 @@ class GroupDM:
         self.n_agents = n_agents
         self.max_coop = max_coop
         self.cll_ba = cll_ba
-        self.all_agents_prms = [[]for i in range(n_agents)]  # 2-dim list to store numpys
-        self.who_give_suggestion = [[]for i in range(n_agents)]
+        self.all_agents_prms = [[] for i in range(self.n_agents)]  # 2-dim list to store numpys
+        self.who_give_suggestion = [[] for i in range(self.n_agents)]
+
+    def new_space(self):
+        """
+        for i in range(len(self.all_agents_prms)):
+            for j in range(len(self.all_agents_prms[i])):
+                self.all_agents_prms[i].pop()
+        for i in range(len(self.who_give_suggestion)):
+            for j in range(len(self.who_give_suggestion[i])):
+                self.who_give_suggestion[i].pop()
+        """
+        self.all_agents_prms = [[] for i in range(self.n_agents)]
+        self.who_give_suggestion = [[] for i in range(self.n_agents)]
 
     def prefer_relation_mtx(self, agent_i, to_agent_j, alt_plan):
         prm = np.zeros(shape=(self.n_actions, self.n_actions))
@@ -37,6 +49,7 @@ class GroupDM:
                 x += 1/a_prm[i, j]
             suggestion.append(1/(x-self.n_actions))
         prob = np.exp(suggestion) / sum(np.exp(suggestion))
+        #print(prob)
         return prob
 
     def con_level(self, prm, a_prm):
