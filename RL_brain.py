@@ -172,7 +172,7 @@ class DeepQNetwork:
                     coop_state = env_s[r]
                     if len(coop_state) < self.n_features * self.max_coop:
                         actual_len = len(coop_state)
-                        coop_state = np.append(coop_state, [-99] * (self.max_coop * self.n_features - actual_len))
+                        coop_state = np.append(coop_state, [-2] * (self.max_coop * self.n_features - actual_len))
                     q_values = self.value_func(coop_state)
                     for one in q_values[0, :actual_coop * self.n_actions]:
                         tmp_value += one
