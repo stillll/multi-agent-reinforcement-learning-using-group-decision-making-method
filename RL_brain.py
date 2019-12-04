@@ -68,6 +68,7 @@ class DeepQNetwork:
             tf.summary.FileWriter("logs/", self.sess.graph)
 
         self.sess.run(tf.global_variables_initializer())
+        self.sess.graph.finalize()
         self.cost_his = []
 
     def _build_net(self):

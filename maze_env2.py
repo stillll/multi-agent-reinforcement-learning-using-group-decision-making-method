@@ -196,7 +196,7 @@ class Maze(tk.Tk, object):
         # reward function
         if next_coords == self.canvas.coords(self.oval) or next_coords2 == self.canvas.coords(self.oval) \
                 or next_coords3 == self.canvas.coords(self.oval):
-            reward = 3
+            reward = 5
             done = True
         elif next_coords in [self.canvas.coords(self.hell1)] or next_coords2 in [self.canvas.coords(self.hell1)]\
                 or next_coords3 in [self.canvas.coords(self.hell1)]:
