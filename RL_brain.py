@@ -157,32 +157,46 @@ class DeepQNetwork:
         return v
 
     def coop_set_and_coop_state(self, agent_id, env_s, pow_set):
-        max_value = -100000000
-        coop_state_i = np.array([])
-        coop_set = np.array([])
-        q_v = []
+        a_value = -99999999  # average value
+        coop_set = np.array([agent_id])
+        coop_state_i = np.array(env_s[agent_id*self.n_features: (agent_id+1)*self.n_features])
+        coop_state_i = np.append(coop_state_i, [-2] * (self.max_coop * self.n_features - len(coop_state_i)))
+        v_set = []
+        soft_max_q = []
         for each in pow_set:  # 'each' is an array, subsets with different lengths
             for each_ in each:  # 'each_' is a array, a specific item in a subset which has specific length
                 if each_[0] == agent_id:
                     actual_coop = len(each_)
                     tmp_value = 0
-                    y = [a * 2 for a in each_]
-                    x = [a + 1 for a in y]
-                    r = sorted(y + x)
-                    coop_state = env_s[r]
+                    start = [a * self.n_features for a in each_]
+                    end = [a + self.n_features - 1 for a in start]
+                    idx = sorted(start + end)
+                    coop_state = env_s[idx]
                     if len(coop_state) < self.n_features * self.max_coop:
                         actual_len = len(coop_state)
                         coop_state = np.append(coop_state, [-2] * (self.max_coop * self.n_features - actual_len))
                     q_values = self.value_func(coop_state)
-                    for one in q_values[0, :actual_coop * self.n_actions]:
-                        tmp_value += one
+                    real_q_v = q_values[0, :actual_coop * self.n_actions]
+                    v_set_tmp = []  # w_i*q_i for each agent in coop set
+                    soft_max_q_tmp = []
+                    for i in range(actual_coop):
+                        real_q_i = real_q_v[i*self.n_actions: (i+1)*self.n_actions]
+                        soft_max_q_i = np.exp(real_q_i)/sum(np.exp(real_q_i))
+                        soft_max_q_tmp.append(soft_max_q_i)
+                        vi = np.dot(soft_max_q_i, real_q_i)
+                        v_set_tmp.append(vi)
+                        tmp_value += vi
                     tmp_value /= actual_coop
-                    if tmp_value > max_value:
-                        q_v = q_values[0, :actual_coop * self.n_actions]
-                        max_value = tmp_value
-                        coop_state_i = coop_state
+                    if tmp_value > a_value:
                         coop_set = each_
-        return coop_state_i, coop_set, max_value, q_v
+                        coop_state_i = coop_state
+                        soft_max_q = soft_max_q_tmp
+                        v_set = v_set_tmp
+                        a_value = tmp_value
+        for e in soft_max_q:
+            for i in range(len(e)):
+                e[i] = e[i]*self.epsilon + (1-self.epsilon)/len(e)
+        return coop_set, coop_state_i, soft_max_q, v_set, a_value
 
     def learn(self, flag):
         # check to replace target parameters

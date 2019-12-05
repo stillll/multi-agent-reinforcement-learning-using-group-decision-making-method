@@ -3,15 +3,15 @@ import numpy as np
 
 
 def run_model(env, dqn, gdm):
-    use_gdm = False
+    use_gdm = True
     step = 0
     all_agent_id = np.array(range(env.n_agents))
     pow_set = []
     for i in range(1, env.max_coop+1):
         pow_set.append(np.array(list(itr.permutations(all_agent_id, i))))
+    cumulate_reward = 0
     reward_his = []
     for episode in range(200):
-        cumulate_reward = 0
         # initial observation
         print("episode", episode, '\n')
         env.reset()  # init env
@@ -25,31 +25,38 @@ def run_model(env, dqn, gdm):
             n_obv = []  # all agents' coop state of this step
             join_act = []  # all agents join actions for this step
             av_values = np.zeros(env.n_agents)  # average values of all agents
+            all_v_set = []  # store all agents' v_set
             if use_gdm is True:
                 gdm.new_space()
 
             for i in range(env.n_agents):  # agents produce their prms and ect.
-                observation, coop_set, av_v, q_v = dqn.coop_set_and_coop_state(i, env_s, pow_set)
-                n_obv.append(observation)
+                coop_set, coop_state_i, soft_max_q, v_set, av_v = dqn.coop_set_and_coop_state(i, env_s, pow_set)
                 all_coop_sets.append(coop_set)
+                n_obv.append(coop_state_i)
+                all_v_set.append(v_set)
                 av_values[i] = av_v
-                q_v_ = np.exp(q_v) / sum(np.exp(q_v))  # softmax q values
                 if use_gdm is True:
-                    for k in range(len(coop_set)):
-                        gdm.prefer_relation_mtx(i, coop_set[k], q_v_[k*env.n_actions:(k+1)*env.n_actions])
+                    for p in range(len(coop_set)):
+                        gdm.prefer_relation_mtx(i, coop_set[p], soft_max_q[p])
 
             if use_gdm is True:
                 cll = 0  # CLL
-                wa = np.exp(av_values)/sum(np.exp(av_values))  # WA
+                wa = np.exp(av_values)/sum(np.exp(av_values))  # WA for CLL
                 w_r = []  # wight for reward assignment
 
             for i in range(env.n_agents):  # agents get their aggregate prms and choose action by the suggestion
                 if use_gdm is True:
                     cl_i = 0  # agent_i's sum of Consensus Level
                     # wights for p_r_m s
-                    wights = np.exp(av_values[gdm.who_give_suggestion[i]])/sum(np.exp(av_values[gdm.who_give_suggestion[i]]))
-                    a_prm = gdm.aggregate_prms(i, wights)  # ？？？
-                    for p in range(len(gdm.who_give_suggestion[i])):  # ？？？
+                    wights = []
+                    all_v_set = np.array(all_v_set)
+                    for e in gdm.who_give_suggestion[i]:
+                        wight_u = all_v_set[e][np.where(all_coop_sets[e] == i)]
+                        wights.append(wight_u)
+                    wights = np.exp(wights)/sum(np.exp(wights))
+                    a_prm = gdm.aggregate_prms(i, wights)
+
+                    for p in range(len(gdm.who_give_suggestion[i])):
                         cl_i += gdm.con_level(gdm.all_agents_prms[i][p], a_prm)
                     cl_i /= len(gdm.who_give_suggestion[i])
                     cl_i *= wa[i]
@@ -68,7 +75,7 @@ def run_model(env, dqn, gdm):
                 w_r_ = np.array(w_r) / cll
                 r = reward * w_r_
             #print(r)
-            cumulate_reward = reward + cumulate_reward
+            cumulate_reward = reward + cumulate_reward*dqn.epsilon
             counter += 1
             if counter > 300:
                 break

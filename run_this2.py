@@ -7,18 +7,20 @@ np.random.seed(0)
 
 if __name__ == "__main__":
     # maze game
-    env = Maze()
+    env = Maze(n_agents=3,
+               max_coop=2)
     dqn = DeepQNetwork(max_coop=env.max_coop,
-                      n_agents=env.n_agents,
-                      n_actions=env.n_actions,
-                      n_features=env.n_features,
-                      learning_rate=0.01,
-                      reward_decay=0.9,
-                      e_greedy=0.9,
-                      replace_target_iter=200,
-                      memory_size=2000,
-                      # output_graph=True
-                      )
+                       n_agents=env.n_agents,
+                       n_actions=env.n_actions,
+                       n_features=env.n_features,
+                       learning_rate=0.01,
+                       reward_decay=0.9,
+                       e_greedy=0.9,
+                       replace_target_iter=300,
+                       memory_size=2000,
+                       batch_size=64,
+                       e_greedy_increment=None,
+                       output_graph=False)
     gdm = GroupDM(n_actions=env.n_actions,
                   n_agents=env.n_agents,
                   max_coop=env.max_coop,
