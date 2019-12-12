@@ -13,6 +13,7 @@ gym: 0.7.3
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 np.random.seed(1)
 tf.set_random_seed(1)
@@ -68,8 +69,9 @@ class DeepQNetwork:
             tf.summary.FileWriter("logs/", self.sess.graph)
 
         self.sess.run(tf.global_variables_initializer())
-        self.sess.graph.finalize()
+
         self.cost_his = []
+        self.reward_his = []
 
     def _build_net(self):
         # ------------------ build evaluate_net ------------------
@@ -156,48 +158,6 @@ class DeepQNetwork:
         v = self.sess.run(self.q_eval, feed_dict={self.s: observation})
         return v
 
-    def coop_set_and_coop_state(self, agent_id, env_s, pow_set):
-        a_value = -99999999  # average value
-        coop_set = np.array([agent_id])
-        coop_state_i = np.array(env_s[agent_id*self.n_features: (agent_id+1)*self.n_features])
-        coop_state_i = np.append(coop_state_i, [-2] * (self.max_coop * self.n_features - len(coop_state_i)))
-        v_set = []
-        soft_max_q = []
-        for each in pow_set:  # 'each' is an array, subsets with different lengths
-            for each_ in each:  # 'each_' is a array, a specific item in a subset which has specific length
-                if each_[0] == agent_id:
-                    actual_coop = len(each_)
-                    tmp_value = 0
-                    start = [a * self.n_features for a in each_]
-                    end = [a + self.n_features - 1 for a in start]
-                    idx = sorted(start + end)
-                    coop_state = env_s[idx]
-                    if len(coop_state) < self.n_features * self.max_coop:
-                        actual_len = len(coop_state)
-                        coop_state = np.append(coop_state, [-2] * (self.max_coop * self.n_features - actual_len))
-                    q_values = self.value_func(coop_state)
-                    real_q_v = q_values[0, :actual_coop * self.n_actions]
-                    v_set_tmp = []  # w_i*q_i for each agent in coop set
-                    soft_max_q_tmp = []
-                    for i in range(actual_coop):
-                        real_q_i = real_q_v[i*self.n_actions: (i+1)*self.n_actions]
-                        soft_max_q_i = np.exp(real_q_i)/sum(np.exp(real_q_i))
-                        soft_max_q_tmp.append(soft_max_q_i)
-                        vi = np.dot(soft_max_q_i, real_q_i)
-                        v_set_tmp.append(vi)
-                        tmp_value += vi
-                    tmp_value /= actual_coop
-                    if tmp_value > a_value:
-                        coop_set = each_
-                        coop_state_i = coop_state
-                        soft_max_q = soft_max_q_tmp
-                        v_set = v_set_tmp
-                        a_value = tmp_value
-        for e in soft_max_q:
-            for i in range(len(e)):
-                e[i] = e[i]*self.epsilon + (1-self.epsilon)/len(e)
-        return coop_set, coop_state_i, soft_max_q, v_set, a_value
-
     def learn(self, flag):
         # check to replace target parameters
         if self.learn_step_counter % self.replace_target_iter == 0:
@@ -283,13 +243,13 @@ class DeepQNetwork:
         self.learn_step_counter += 1
 
     def plot_cost(self):
-        import matplotlib.pyplot as plt
         plt.plot(np.arange(len(self.cost_his)), self.cost_his)
         plt.ylabel('Cost')
         plt.xlabel('episode')
         plt.show()
-        
 
-
-
-
+    def plot_reward(self):
+        plt.plot(np.arange(len(self.reward_his)), self.reward_his)
+        plt.ylabel('reward')
+        plt.xlabel('episode')
+        plt.show()
