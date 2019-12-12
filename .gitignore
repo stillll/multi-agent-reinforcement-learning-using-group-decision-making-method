@@ -9,3 +9,13 @@
 .pytest_cache/v/cache/nodeids
 .idea/misc.xml
 .idea/workspace.xml___jb_tmp___
+*.index
+*.meta
+*.data-00000-of-00001
+*.txt
+*.DESKTOP-T8AQQ7G
+3-1model_non_gdm/checkpoint
+3-2model/checkpoint
+3-2model_non_gdm/checkpoint
+3-3model/checkpoint
+3-3model_non_gdm/checkpoint
