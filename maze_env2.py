@@ -20,19 +20,23 @@ if sys.version_info.major == 2:
 else:
     import tkinter as tk
 
+
 UNIT = 40   # pixels
 MAZE_H = 9  # grid height
 MAZE_W = 9  # grid width
 
 
 class Maze(tk.Tk, object):
-    def __init__(self):
+    def __init__(self,
+                 n_agents=3,
+                 max_coop=2,
+                 ):
         super(Maze, self).__init__()
         self.action_space = ['u', 'd', 'l', 'r']
         self.n_actions = len(self.action_space)
         self.n_features = 2
-        self.n_agents = 3
-        self.max_coop = 2
+        self.n_agents = n_agents
+        self.max_coop = max_coop
         self.title('maze')
         self.geometry('{0}x{1}'.format(MAZE_H * UNIT, MAZE_H * UNIT))
         self._build_maze()
@@ -126,19 +130,19 @@ class Maze(tk.Tk, object):
             origin[0] + 320 + 15, origin[1] + 320 + 15,
             fill='blue')
         # return observation
-        """
         return np.hstack(((np.array(self.canvas.coords(self.rect)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H*UNIT),
                          (np.array(self.canvas.coords(self.rect2)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H*UNIT),
                          (np.array(self.canvas.coords(self.rect3)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H*UNIT)))
-        """
 
-    def env_s(self, ):
+    """
+    def env_s(self):
         return np.hstack(
                         ((np.array(self.canvas.coords(self.rect)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H*UNIT),
                          (np.array(self.canvas.coords(self.rect2)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H*UNIT),
                          (np.array(self.canvas.coords(self.rect3)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H*UNIT)
                         )
                         )
+    """
 
     def step(self, action):
         """
@@ -208,13 +212,12 @@ class Maze(tk.Tk, object):
         else:
             reward = -0.1
             done = False
-        #s_ = (np.array(next_coords[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H*UNIT)
-        #s_2 = (np.array(next_coords2[:2]) - np.array(self.canvas.coords(self.oval)[:2])) / (MAZE_H * UNIT)
-        #s_3 = (np.array(next_coords3[:2]) - np.array(self.canvas.coords(self.oval)[:2])) / (MAZE_H * UNIT)
-        return reward, done
+        env_s_ = np.hstack(((np.array(self.canvas.coords(self.rect)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H * UNIT),
+                            (np.array(self.canvas.coords(self.rect2)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H * UNIT),
+                            (np.array(self.canvas.coords(self.rect3)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H * UNIT)))
+        return env_s_, reward, done
 
     def render(self):
         time.sleep(0.01)
         self.update()
-
 

@@ -15,18 +15,7 @@ class GroupDM:
         self.all_agents_prms = [[] for i in range(self.n_agents)]  # 2-dim list to store numpys
         self.who_give_suggestion = [[] for i in range(self.n_agents)]
 
-    def new_space(self):
-        """
-        for i in range(len(self.all_agents_prms)):
-            for j in range(len(self.all_agents_prms[i])):
-                self.all_agents_prms[i].pop()
-        for i in range(len(self.who_give_suggestion)):
-            for j in range(len(self.who_give_suggestion[i])):
-                self.who_give_suggestion[i].pop()
-        """
-        self.all_agents_prms = [[] for i in range(self.n_agents)]
-        self.who_give_suggestion = [[] for i in range(self.n_agents)]
-
+    # compute preference relation matrix
     def prefer_relation_mtx(self, agent_i, to_agent_j, alt_plan):
         prm = np.zeros(shape=(self.n_actions, self.n_actions))
         for i in range(self.n_actions):
@@ -38,12 +27,14 @@ class GroupDM:
         self.all_agents_prms[to_agent_j].append(prm)
         self.who_give_suggestion[to_agent_j].append(agent_i)
 
+    # compute aggregate preference relation matrix
     def aggregate_prms(self, agent_i, wights):
         a_prm = np.zeros(shape=(self.n_actions, self.n_actions))
         for i in range(len(self.all_agents_prms[agent_i])):
             a_prm += wights[i] * self.all_agents_prms[agent_i][i]
         return a_prm
 
+    # convert aggregated preference relation matrix to suggestion
     def a_prm_to_sugg(self, a_prm):
         suggestion = []
         for i in range(self.n_actions):
@@ -60,9 +51,12 @@ class GroupDM:
             else:
                 x = 0
             suggestion.append(x)
-        prob = np.exp(suggestion) / sum(np.exp(suggestion))
-        return prob
+        #print("sg:", suggestion)
+        suggestion = suggestion / sum(suggestion)
+        #print("sg_:", suggestion)
+        return suggestion
 
+    # compute Consensus level between prm and a_prm
     def con_level(self, prm, a_prm):
         c_l = 0
         for i in range(self.n_actions):
