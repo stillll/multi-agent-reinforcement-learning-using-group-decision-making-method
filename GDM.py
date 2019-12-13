@@ -51,9 +51,9 @@ class GroupDM:
             else:
                 x = 0
             suggestion.append(x)
-        #print(a_prm)
-        #print(suggestion)
-        suggestion = np.exp(suggestion) / sum(np.exp(suggestion))
+        #print("sg:", suggestion)
+        suggestion = suggestion / sum(suggestion)
+        #print("sg_:", suggestion)
         return suggestion
 
     # compute Consensus level between prm and a_prm
