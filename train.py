@@ -9,17 +9,23 @@ def train_model(env, model, save_path, max_episode):
         env_s = env.reset()  # init env and return env state
         store_cost_flag = True  # if store cost
         counter = 0  # if end episode
+        join_act, w_r = model.run_model(env_s)
+        env_s_, reward, done = env.step(join_act)
         while True:  # one step
             # fresh env
             env.render()
 
             # all agents join actions for this step
+            obv = model.n_obv
+            joa = join_act
+            w = w_r
             join_act, w_r = model.run_model(env_s)
 
             # take action and get next env state and reward
+            r = reward
             env_s_, reward, done = env.step(join_act)
 
-            model.store_n_transitions(join_act, env_s_, reward, w_r)
+            model.store_n_transitions(joa, obv,r, w)
 
             cumulate_reward = reward + cumulate_reward * 0.99
 

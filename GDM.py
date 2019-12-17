@@ -7,11 +7,13 @@ class GroupDM:
                  n_agents,
                  max_coop,
                  cll_ba,
+                 max_discuss
                  ):
         self.n_actions = n_actions
         self.n_agents = n_agents
         self.max_coop = max_coop
         self.cll_ba = cll_ba
+        self.max_discuss = max_discuss
         self.all_agents_prms = [[] for i in range(self.n_agents)]  # 2-dim list to store numpys
         self.who_give_suggestion = [[] for i in range(self.n_agents)]
 
