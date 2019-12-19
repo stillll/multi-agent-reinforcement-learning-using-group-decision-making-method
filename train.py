@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def train_model(env, model, save_path, max_episode, max_step):
+def train_model(env, model, save_path, max_episode):
     step = 0
     cumulate_reward = 0
     for episode in range(max_episode):
@@ -21,7 +21,6 @@ def train_model(env, model, save_path, max_episode, max_step):
                 store_cost_flag = False
 
             # break while loop when end of this episode
-
             counter += 1
             if counter > 300 or done:
                 break
@@ -67,6 +66,3 @@ def train_model(env, model, save_path, max_episode, max_step):
 
     model.plot_cost()
     model.plot_reward()
-
-
-
