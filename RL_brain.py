@@ -41,6 +41,7 @@ class DeepQNetwork:
         self.n_agents = n_agents
         self.n_actions = n_actions
         self.n_features = n_features
+        self.input_length = self.max_coop*(self.n_actions+self.n_features)
         self.lr = learning_rate
         self.gamma = reward_decay
         self.epsilon_max = e_greedy
@@ -54,7 +55,7 @@ class DeepQNetwork:
         self.learn_step_counter = 0
 
         # initialize zero memory [s, a, r, s_]
-        self.memory = np.zeros((self.memory_size, max_coop * (n_features+n_actions) * 2 + 1 + max_coop))
+        self.memory = np.zeros((self.memory_size, self.input_length * 2 + 1 + self.max_coop))
 
         # consist of [target_net, evaluate_net]
         self._build_net()
@@ -79,17 +80,17 @@ class DeepQNetwork:
 
     def _build_net(self):
         # ------------------ build evaluate_net ------------------
-        self.s = tf.placeholder(tf.float32, [None, self.n_features*self.max_coop+self.n_actions*self.max_coop], name='s')  # input
+        self.s = tf.placeholder(tf.float32, [None, self.input_length], name='s')  # input
         self.q_target = tf.placeholder(tf.float32, [None, self.n_actions*self.max_coop], name='Q_target')  # for calculating loss
         with tf.variable_scope('eval_net'):
             # c_names(collections_names) are the collections to store variables
             c_names, n_l1, w_initializer, b_initializer = \
-                ['eval_net_params', tf.GraphKeys.GLOBAL_VARIABLES], 20, \
+                ['eval_net_params', tf.GraphKeys.GLOBAL_VARIABLES], 15, \
                 tf.random_normal_initializer(0., 0.3), tf.constant_initializer(0.1)  # config of layers
 
             # first layer. collections is used later when assign to target net
             with tf.variable_scope('l1'):
-                w1 = tf.get_variable('w1', [self.n_features*self.max_coop+self.n_actions*self.max_coop, n_l1], initializer=w_initializer, collections=c_names)
+                w1 = tf.get_variable('w1', [self.input_length, n_l1], initializer=w_initializer, collections=c_names)
                 b1 = tf.get_variable('b1', [1, n_l1], initializer=b_initializer, collections=c_names)
                 l1 = tf.nn.relu(tf.matmul(self.s, w1) + b1)
 
@@ -110,14 +111,14 @@ class DeepQNetwork:
             self._train_op = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
 
         # ------------------ build target_net ------------------
-        self.s_ = tf.placeholder(tf.float32, [None, self.n_features*self.max_coop+self.n_actions*self.max_coop], name='s_')    # input
+        self.s_ = tf.placeholder(tf.float32, [None, self.input_length], name='s_')    # input
         with tf.variable_scope('target_net'):
             # c_names(collections_names) are the collections to store variables
             c_names = ['target_net_params', tf.GraphKeys.GLOBAL_VARIABLES]
 
             # first layer. collections is used later when assign to target net
             with tf.variable_scope('l1'):
-                w1 = tf.get_variable('w1', [self.n_features*self.max_coop+self.n_actions*self.max_coop, n_l1], initializer=w_initializer, collections=c_names)
+                w1 = tf.get_variable('w1', [self.input_length, n_l1], initializer=w_initializer, collections=c_names)
                 b1 = tf.get_variable('b1', [1, n_l1], initializer=b_initializer, collections=c_names)
                 l1 = tf.nn.relu(tf.matmul(self.s_, w1) + b1)
 
@@ -137,6 +138,7 @@ class DeepQNetwork:
             self.memory_counter = 0
 
         transition = np.hstack((s, a, r, s_))
+        #print(transition)
 
         # replace the old memory with new memory
         index = self.memory_counter % self.memory_size
@@ -178,8 +180,8 @@ class DeepQNetwork:
         q_next, q_eval = self.sess.run(
             [self.q_next, self.q_eval],
             feed_dict={
-                self.s_: batch_memory[:, -((self.n_features+self.n_actions)*self.max_coop):],  # fixed params
-                self.s: batch_memory[:, :((self.n_features+self.n_actions)*self.max_coop)],  # newest params
+                self.s_: batch_memory[:, -self.input_length:],  # fixed params
+                self.s: batch_memory[:, :self.input_length],  # newest params
             })
 
         # change q_target w.r.t q_eval's action
@@ -189,10 +191,10 @@ class DeepQNetwork:
 
         #batch_index = np.arange(self.batch_size, dtype=np.int32)
 
-        eval_act_index = batch_memory[:, self.n_features*self.max_coop:self.n_features*self.max_coop+self.max_coop].astype(int)
+        eval_act_index = batch_memory[:, self.input_length:self.input_length+self.max_coop].astype(int)
         #print("eval_act_index:", eval_act_index.shape)
 
-        reward = batch_memory[:, self.max_coop*self.n_features + self.max_coop].\
+        reward = batch_memory[:, self.input_length + self.max_coop].\
             repeat(self.max_coop*self.n_actions).reshape(self.batch_size, self.max_coop*self.n_actions)  #  repeat max_coop*n_actions
         #print("reward:", reward.shape)
 
@@ -236,7 +238,7 @@ class DeepQNetwork:
 
         # train eval network
         _, self.cost = self.sess.run([self._train_op, self.loss],
-                                     feed_dict={self.s: batch_memory[:, :(self.n_features+self.n_actions)*self.max_coop],
+                                     feed_dict={self.s: batch_memory[:, :self.input_length],
                                                 self.q_target: q_target})
         #print("cost:", self.cost, '\n')
         if flag is True:
