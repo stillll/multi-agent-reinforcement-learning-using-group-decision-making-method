@@ -1,9 +1,11 @@
 import argparse
-from WAgent.python import magent
+# from WAgent.python import magent
+from maze_env2 import Maze
 from Model import MAGDMRL
 import tensorflow as tf
 from test import test_model
 from train import train_model
+import numpy as np
 import os
 np.random.seed(0)
 
@@ -13,7 +15,7 @@ def parse_args():
     # Environment
     parser.add_argument("--scenario", type=str, default="pursuit", help="name of the scenario script")
     parser.add_argument("--map_size", type=int, default=100, help="the size of map")
-    parser.add_argument("--num_1", type=int, default=20, help="the number of group_1")
+    parser.add_argument("--num_1", type=int, default=3, help="the number of group_1")
     parser.add_argument("--num_2", type=int, default=20, help="the number of group_2")
     parser.add_argument("--num_walls", type=int, default=100, help="the number of the walls")
 
@@ -21,12 +23,11 @@ def parse_args():
     parser.add_argument("--alg", default='dqn', choices=['dqn', 'drqn', 'a2c', 'gdm'])
     parser.add_argument("--max_step", type=int, default=300, help='the max step of a episode')
     parser.add_argument("--save_path", type=str, default="3-2gdm-discuss/", help="the path to save")
-    parser.add_argument("--model_path", type=str, default="MAGDMRL", help="the path for model to save")
+    parser.add_argument("--model_name", type=str, default="MAGDMRL", help="the path for model to save")
     parser.add_argument("--model_exist", type=bool, default=False, help="if use the exist model")
-    parser.add_argument("--max_step", type=int, default=300, help="maximum episode length")
     parser.add_argument("--num_episodes", type=int, default=10000, help="number of episodes")
-    parser.add_argument("--max_coop", type=int, default=3, help="max number of cooperate agents")
-    parser.add_argument("--use_gdm", type=bool, default=False, help="if use the gdm policy")
+    parser.add_argument("--max_coop", type=int, default=2, help="max number of cooperate agents")
+    parser.add_argument("--use_gdm", type=bool, default=True, help="if use the gdm policy")
     parser.add_argument("--n_features", type=int, default=2, help="the feature dimension")
     parser.add_argument("--max_discuss", type=int, default=1, help=" ")
 
@@ -50,6 +51,7 @@ def parse_args():
     return parser.parse_args()
 
 
+'''
 def make_env(arglist):
     env = magent.GridWorld(arglist.scenario, map_size=arglist.map_size)
     env.set_render_dir("build/render")
@@ -61,6 +63,13 @@ def make_env(arglist):
     env.add_agents(group_1, method="random", n=arglist.num_1)
     env.add_agents(group_2, method="random", n=arglist.num_2)
     return env
+'''
+
+
+def make_env(arglist):
+    env = Maze(n_agents=3,
+               max_coop=2)
+    return env
 
 
 def set_model(arglist, env):
@@ -70,7 +79,7 @@ def set_model(arglist, env):
                     max_coop=arglist.max_coop,
                     n_features=arglist.n_features,  # feature length for single agent
                     cll_ba=arglist.cll_ba,
-                    max_discuss=arglist.max_discuss,
+                    # max_discuss=arglist.max_discuss,
                     learning_rate=arglist.lr,
                     reward_decay=arglist.gamma,
                     e_greedy=arglist.e_greedy,
@@ -78,7 +87,7 @@ def set_model(arglist, env):
                     memory_size=arglist.memory_size,
                     batch_size=arglist.batch_size,
                     e_greedy_increment=arglist.e_greedy_add,
-                    output_graph=arglist.out_graph,
+                    output_graph=arglist.output_graph,
                     use_gdm=arglist.use_gdm,
                     sess=None)
     return model
@@ -138,7 +147,7 @@ def train_or_test(arglist):
         env.after(100, test_model(env, model, max_episode=100))
         env.mainloop()
     else:
-        env.after(100, train_model(env, model, os.path.join(arglist.save_path + arglist.model_name), max_episode=1000))
+        env.after(100, train_model(env, model, arglist.save_path + arglist.model_name, max_episode=1000))
         env.mainloop()
 
 
