@@ -52,13 +52,13 @@ def train_model(env, model, save_path, max_episode):
     print('game over')
     env.destroy()
 
-    write_rewards = open('data_for_plot/3-2-reward_his.txt', 'w')
+    write_rewards = open('../data_for_plot/3-2-reward_his.txt', 'w')
     for ip in model.reward_his:
         write_rewards.write(str(ip))
         write_rewards.write('\n')
     write_rewards.close()
 
-    write_costs = open('data_for_plot/3-2-cost_his.txt', 'w')
+    write_costs = open('../data_for_plot/3-2-cost_his.txt', 'w')
     for ip in model.reward_his:
         write_costs.write(str(ip))
         write_costs.write('\n')
