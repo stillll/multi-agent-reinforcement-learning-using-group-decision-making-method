@@ -67,8 +67,8 @@ def make_env(arglist):
 
 
 def make_env(arglist):
-    env = Maze(n_agents=3,
-               max_coop=2)
+    env = Maze(n_agents=arglist.num_1,
+               max_coop=arglist.max_coop)
     return env
 
 
