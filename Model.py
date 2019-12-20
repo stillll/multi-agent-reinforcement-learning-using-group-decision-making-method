@@ -35,6 +35,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                               batch_size,
                               e_greedy_increment,
                               output_graph,
+                              use_gdm,
                               sess)
         GroupDM.__init__(self,
                          n_actions,
@@ -84,14 +85,15 @@ class MAGDMRL(DeepQNetwork, GroupDM):
         coop_state = env_s[idx]
         coop_state = np.append(coop_state, [-2]*(self.max_coop*self.n_features-len(coop_state)))
         #print("2",coop_state)
-        start2 = [a * self.n_actions + self.n_agents * self.n_features for a in coop_set]
-        end2 = [a + self.n_actions - 1 for a in start2]
-        idx2 = np.array([])
-        for i in range(len(start2)):
-            idx_i2 = np.arange(start2[i], end2[i] + 1)
-            idx2 = np.append(idx2, idx_i2).astype(int)
-        coop_state = np.append(coop_state, env_s[idx2])
-        coop_state = np.append(coop_state, [0.25] * (self.max_coop*self.n_actions - len(coop_set)*self.n_actions))
+        if self.use_gdm is True:
+            start2 = [a * self.n_actions + self.n_agents * self.n_features for a in coop_set]
+            end2 = [a + self.n_actions - 1 for a in start2]
+            idx2 = np.array([])
+            for i in range(len(start2)):
+                idx_i2 = np.arange(start2[i], end2[i] + 1)
+                idx2 = np.append(idx2, idx_i2).astype(int)
+            coop_state = np.append(coop_state, env_s[idx2])
+            coop_state = np.append(coop_state, [0.25] * (self.max_coop*self.n_actions - len(coop_set)*self.n_actions))
         return coop_state
 
     # find coop set and coop state for single agent in one step
@@ -139,16 +141,14 @@ class MAGDMRL(DeepQNetwork, GroupDM):
         self.all_coop_sets_l = self.all_coop_sets
         while cll < self.cll_ba and discuss_cnt < self.max_discuss*3:
             self.new_space()
+            join_act = []
             if self.use_gdm is True:
                 self.new_gdm_space()
-            join_act = []
-            # agents produce and store their prms)
-            #print("all_sugg",self.all_sugg
-            env_s_fill = np.append(env_s, np.array(self.all_sugg).flatten())
-            #print(env_s_fill)
-            self.all_sugg = []
+                env_s = np.append(env_s, np.array(self.all_sugg).flatten())
+                self.all_sugg = []
+            # agents produce and store their prms
             for i in range(self.n_agents):
-                coop_set, coop_state_i, soft_max_q, v_set, av_v = self.coop_set_and_coop_state(i, env_s_fill)
+                coop_set, coop_state_i, soft_max_q, v_set, av_v = self.coop_set_and_coop_state(i, env_s)
                 self.all_coop_sets.append(coop_set)
                 self.n_obv.append(coop_state_i)
                 if self.use_gdm is True:
@@ -206,6 +206,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
             w_r = np.array(self.all_cl)
         else:
             w_r = np.ones(self.n_agents)
+        #print(join_act)
         return join_act, w_r
 
     def store_n_transitions(self, last_obv, last_join_act, last_reward, l_w_r):

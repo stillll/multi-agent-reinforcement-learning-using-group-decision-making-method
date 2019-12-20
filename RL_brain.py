@@ -35,13 +35,14 @@ class DeepQNetwork:
             batch_size=32,
             e_greedy_increment=None,
             output_graph=False,
+            use_gdm=False,
             sess=None
     ):
         self.max_coop = max_coop
         self.n_agents = n_agents
         self.n_actions = n_actions
         self.n_features = n_features
-        self.input_length = self.max_coop*(self.n_actions+self.n_features)
+        self.input_length = self.max_coop*(self.n_actions+self.n_features) if use_gdm is True else self.max_coop*self.n_features
         self.lr = learning_rate
         self.gamma = reward_decay
         self.epsilon_max = e_greedy
