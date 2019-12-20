@@ -35,6 +35,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                               batch_size,
                               e_greedy_increment,
                               output_graph,
+                              use_gdm,
                               sess)
         GroupDM.__init__(self,
                          n_actions,
@@ -44,12 +45,12 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                          max_discuss)
         self.use_gdm = use_gdm
         self.all_coop_sets = []  # all agents' coop set
-        self.all_coop_sets_l = self.all_coop_sets  # all agents' coop set
+        self.all_coop_sets_l = self.all_coop_sets  # all agents' coop set on last step
         self.n_obv = []  # all agents' coop state of this step
         self.av_exp_values = np.zeros(n_agents)  # average expect values of all agents
         self.all_v_set = []  # all agents' v_set, e.g. 0's coop set is [0,1,2], all_v_set[i] = [v0,v1,v2]
         self.all_cl = []  # all agents' cl
-        self.all_sugg = [0.25 for i in range(self.max_coop*self.n_actions)]  # all agents' final suggestions
+        self.all_sugg = [0.25 for i in range(self.n_agents*self.n_actions)]  # all agents' final suggestions
 
     # new space for gdm operation in one step
     def new_gdm_space(self):
@@ -74,6 +75,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
 
     # Fill the state length that does not meet the input conditions to a fixed length
     def state_completion(self, coop_set, env_s):
+        #print("1",env_s)
         start = [a * self.n_features for a in coop_set]
         end = [a + self.n_features - 1 for a in start]
         idx = np.array([])
@@ -82,15 +84,16 @@ class MAGDMRL(DeepQNetwork, GroupDM):
             idx = np.append(idx, idx_i).astype(int)
         coop_state = env_s[idx]
         coop_state = np.append(coop_state, [-2]*(self.max_coop*self.n_features-len(coop_state)))
-
-        start2 = [a * self.n_actions + self.n_agents * self.n_features for a in coop_set]
-        end2 = [a + self.n_actions - 1 for a in start2]
-        idx2 = np.array([])
-        for i in range(len(start2)):
-            idx_i2 = np.arange(start2[i], end2[i] + 1)
-            idx2 = np.append(idx2, idx_i2).astype(int)
-        coop_state = np.append(coop_state, env_s[idx2])
-        coop_state = np.append(coop_state, [0.25] * (self.max_coop*self.n_actions - len(coop_set)*self.n_actions))
+        #print("2",coop_state)
+        if self.use_gdm is True:
+            start2 = [a * self.n_actions + self.n_agents * self.n_features for a in coop_set]
+            end2 = [a + self.n_actions - 1 for a in start2]
+            idx2 = np.array([])
+            for i in range(len(start2)):
+                idx_i2 = np.arange(start2[i], end2[i] + 1)
+                idx2 = np.append(idx2, idx_i2).astype(int)
+            coop_state = np.append(coop_state, env_s[idx2])
+            coop_state = np.append(coop_state, [0.25] * (self.max_coop*self.n_actions - len(coop_set)*self.n_actions))
         return coop_state
 
     # find coop set and coop state for single agent in one step
@@ -108,7 +111,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                     tmp_value = 0
                     coop_state = self.state_completion(each_, env_s)
                     q_values = self.value_func(coop_state)
-                    print("q",q_values)
+                    #print("q",q_values)
                     real_q_v = q_values[0, :actual_coop * self.n_actions]
                     v_set_tmp = []  # w_i*q_i for each agent in coop set
                     soft_max_q_tmp = []
@@ -138,15 +141,14 @@ class MAGDMRL(DeepQNetwork, GroupDM):
         self.all_coop_sets_l = self.all_coop_sets
         while cll < self.cll_ba and discuss_cnt < self.max_discuss*3:
             self.new_space()
+            join_act = []
             if self.use_gdm is True:
                 self.new_gdm_space()
-            join_act = []
+                env_s = np.append(env_s, np.array(self.all_sugg).flatten())
+                self.all_sugg = []
             # agents produce and store their prms
-            #print("all_sugg",self.all_sugg)
-            env_s_fill = np.append(env_s, np.array(self.all_sugg).flatten())
-            self.all_sugg = []
             for i in range(self.n_agents):
-                coop_set, coop_state_i, soft_max_q, v_set, av_v = self.coop_set_and_coop_state(i, env_s_fill)
+                coop_set, coop_state_i, soft_max_q, v_set, av_v = self.coop_set_and_coop_state(i, env_s)
                 self.all_coop_sets.append(coop_set)
                 self.n_obv.append(coop_state_i)
                 if self.use_gdm is True:
@@ -194,9 +196,9 @@ class MAGDMRL(DeepQNetwork, GroupDM):
             if self.use_gdm is False:
                 break
 
-            print(wa,self.all_cl)
+            #print(wa,self.all_cl)
             cll = np.dot(wa, self.all_cl)
-            print("cll",cll)
+            #print("cll",cll)
             discuss_cnt += 1
 
         # weights for reward assignment
@@ -204,28 +206,18 @@ class MAGDMRL(DeepQNetwork, GroupDM):
             w_r = np.array(self.all_cl)
         else:
             w_r = np.ones(self.n_agents)
+        #print(join_act)
         return join_act, w_r
 
-    def store_n_transitions(self, join_act, env_s_, reward, w_r):
+    def store_n_transitions(self, last_obv, last_join_act, last_reward, l_w_r):
         if self.use_gdm is True:
-            r = reward * w_r
-            #print("r:", r)
+            l_r = last_reward * l_w_r
+            #print("l_r:", l_r)
         for i in range(self.n_agents):
-            """
-            start = [a * self.n_features for a in self.all_coop_sets[i]]
-            end = [a + self.n_features - 1 for a in start]
-            idx = sorted(start + end)
-            observation_ = env_s_[idx]
-            if len(observation_) < self.max_coop * self.n_features:
-                observation_ = np.append(observation_, [-2] * (self.max_coop * self.n_features - len(observation_)))
-            """
-            fill_part = [0.25 for i in range(self.max_coop*self.n_actions)]
-            env_s_fill = np.append(env_s_, fill_part)
-            observation_ = self.state_completion(self.all_coop_sets_l[i], env_s_fill)
-            coop_act = np.array(join_act)[self.all_coop_sets_l[i]]
-            if len(coop_act) < self.max_coop:
-                coop_act = np.append(coop_act, [-1] * (self.max_coop - len(coop_act)))
+            last_coop_act = np.array(last_join_act)[self.all_coop_sets_l[i]]
+            if len(last_coop_act) < self.max_coop:
+                last_coop_act = np.append(last_coop_act, [-1] * (self.max_coop - len(last_coop_act)))
             if self.use_gdm is True:
-                self.store_transition(env_s_[i], coop_act, r[i], self.n_obv[i])
+                self.store_transition(last_obv[i], last_coop_act, l_r[i], self.n_obv[i])
             else:
-                self.store_transition(self.n_obv[i], coop_act, reward, observation_)
+                self.store_transition(last_obv[i], last_coop_act, last_reward, self.n_obv[i])
