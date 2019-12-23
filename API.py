@@ -29,7 +29,8 @@ def parse_args():
     parser.add_argument("--max_coop", type=int, default=2, help="max number of cooperate agents")
     parser.add_argument("--use_gdm", type=bool, default=True, help="if use the gdm policy")
     parser.add_argument("--n_features", type=int, default=2, help="the feature dimension")
-    parser.add_argument("--max_discuss", type=int, default=1, help=" ")
+
+    parser.add_argument("--max_discuss", type=int, default=1)
 
     # Core training parameters
     parser.add_argument("--lr", type=float, default=1e-2, help="learning rate for optimizer")
