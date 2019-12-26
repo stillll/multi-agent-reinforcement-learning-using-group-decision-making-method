@@ -10,9 +10,7 @@ def train_model(env, model, save_path, max_episode):
         store_cost_flag = True  # if store cost
         counter = 0  # if end episode
         join_act, w_r = model.run_model(env_s)  # 第一步
-        env_s_, reward, done = env.step(join_act)  # 第一步
         while True:  # one step
-            cumulate_reward = reward + cumulate_reward * 0.99
 
             # learn
             step += 1
@@ -21,25 +19,25 @@ def train_model(env, model, save_path, max_episode):
                 store_cost_flag = False
 
             # break while loop when end of this episode
-            counter += 1
-            if counter > 300 or done:
-                break
+
 
             # fresh env
             env.render()
 
-            obv = model.n_obv  # 上一步的观察
-            last_join_act = join_act  # 上一步的动作
             #print("last",last_join_act)
-            r = reward  # 上一步的奖励
+            #r = reward  # 上一步的奖励
             w_r_ = w_r  # 上一步的奖励系数
-
-            env_s = env_s_
+            env_s, reward, done = env.step(join_act)  # 当前步
+            cumulate_reward = reward + cumulate_reward * 0.99
+            last_join_act = join_act  # 上一步的动作
+            obv = model.n_obv  # 上一步的观察
             join_act, w_r = model.run_model(env_s)  # 当前步
             #print("now",join_act)
-            env_s_, reward, done = env.step(join_act)  # 当前步
+            model.store_n_transitions(obv, last_join_act, reward, w_r_)  # 上一步到当前步的转移经验
+            if counter > 300 or done:
+                break
+            counter += 1
 
-            model.store_n_transitions(obv, last_join_act, r, w_r_)  # 上一步到当前步的转移经验
 
         # record cumulate rewards once an episode
         print("reward:", cumulate_reward)

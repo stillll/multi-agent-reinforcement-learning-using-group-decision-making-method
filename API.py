@@ -31,7 +31,7 @@ def parse_args():
     parser.add_argument("--max_discuss", type=int, default=1)
 
     # Core training parameters
-    parser.add_argument("--lr", type=float, default=1e-2, help="learning rate for optimizer")
+    parser.add_argument("--lr", type=float, default=0.01, help="learning rate for optimizer")
     parser.add_argument("--gamma", type=float, default=0.90, help="discount factor")
     parser.add_argument("--e_greedy", type=float, default=0.90, help="greedy degree")
     parser.add_argument("--batch_size", type=int, default=32, help="number of episodes to optimize at the same time")
@@ -85,10 +85,10 @@ def train_or_test(arglist):
     if arglist.model_exist:
         saver = tf.train.Saver()
         saver.restore(model.sess, tf.train.latest_checkpoint(arglist.save_path))
-        env.after(100, test_model(env, model, max_episode=100))
+        env.after(100, test_model(env, model, max_episode=arglist.num_episodes))
         env.mainloop()
     else:
-        env.after(100, train_model(env, model, arglist.save_path + arglist.model_name, max_episode=1000))
+        env.after(100, train_model(env, model, arglist.save_path + arglist.model_name, max_episode=arglist.num_episodes))
         env.mainloop()
 
 
