@@ -21,3 +21,6 @@
 3-3model_non_gdm/checkpoint
 3-2gdm-discuss/checkpoint
 3-3gdm-discuss/checkpoint
+.vscode/.ropeproject/config.py
+.vscode/.ropeproject/objectdb
+MAgent/
