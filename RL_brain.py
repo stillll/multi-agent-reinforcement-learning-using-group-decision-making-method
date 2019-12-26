@@ -23,10 +23,10 @@ tf.set_random_seed(1)
 class DeepQNetwork:
     def __init__(
             self,
-            max_coop,
-            n_agents,
-            n_actions,
-            n_features,
+            input_length,
+            output_length,
+            action_dim,
+            action_space,
             learning_rate=0.01,
             reward_decay=0.9,
             e_greedy=0.9,
@@ -38,11 +38,10 @@ class DeepQNetwork:
             use_gdm=False,
             sess=None
     ):
-        self.max_coop = max_coop
-        self.n_agents = n_agents
-        self.n_actions = n_actions
-        self.n_features = n_features
-        self.input_length = self.max_coop*(self.n_actions+self.n_features) if use_gdm is True else self.max_coop*self.n_features
+        self.input_length = input_length
+        self.output_length = output_length
+        self.action_dim = action_dim
+        self.action_space = action_space
         self.lr = learning_rate
         self.gamma = reward_decay
         self.epsilon_max = e_greedy
@@ -56,7 +55,7 @@ class DeepQNetwork:
         self.learn_step_counter = 0
 
         # initialize zero memory [s, a, r, s_]
-        self.memory = np.zeros((self.memory_size, self.input_length * 2 + 1 + self.max_coop))
+        self.memory = np.zeros((self.memory_size, self.input_length * 2 + 1 + self.action_dim))
 
         # consist of [target_net, evaluate_net]
         self._build_net()
@@ -82,11 +81,11 @@ class DeepQNetwork:
     def _build_net(self):
         # ------------------ build evaluate_net ------------------
         self.s = tf.placeholder(tf.float32, [None, self.input_length], name='s')  # input
-        self.q_target = tf.placeholder(tf.float32, [None, self.n_actions*self.max_coop], name='Q_target')  # for calculating loss
+        self.q_target = tf.placeholder(tf.float32, [None, self.output_length], name='Q_target')  # for calculating loss
         with tf.variable_scope('eval_net'):
             # c_names(collections_names) are the collections to store variables
             c_names, n_l1, w_initializer, b_initializer = \
-                ['eval_net_params', tf.GraphKeys.GLOBAL_VARIABLES], 15, \
+                ['eval_net_params', tf.GraphKeys.GLOBAL_VARIABLES], 10, \
                 tf.random_normal_initializer(0., 0.3), tf.constant_initializer(0.1)  # config of layers
 
             # first layer. collections is used later when assign to target net
@@ -102,8 +101,8 @@ class DeepQNetwork:
 
             # second layer. collections is used later when assign to target net
             with tf.variable_scope('l2'):
-                w2 = tf.get_variable('w2', [n_l1, self.n_actions*self.max_coop], initializer=w_initializer, collections=c_names)
-                b2 = tf.get_variable('b2', [1, self.n_actions*self.max_coop], initializer=b_initializer, collections=c_names)
+                w2 = tf.get_variable('w2', [n_l1, self.output_length], initializer=w_initializer, collections=c_names)
+                b2 = tf.get_variable('b2', [1, self.output_length], initializer=b_initializer, collections=c_names)
                 self.q_eval = tf.matmul(ladd, w2) + b2
 
         with tf.variable_scope('loss'):
@@ -130,8 +129,8 @@ class DeepQNetwork:
 
             # second layer. collections is used later when assign to target net
             with tf.variable_scope('l2'):
-                w2 = tf.get_variable('w2', [n_l1, self.n_actions*self.max_coop], initializer=w_initializer, collections=c_names)
-                b2 = tf.get_variable('b2', [1, self.n_actions*self.max_coop], initializer=b_initializer, collections=c_names)
+                w2 = tf.get_variable('w2', [n_l1, self.output_length], initializer=w_initializer, collections=c_names)
+                b2 = tf.get_variable('b2', [1, self.output_length], initializer=b_initializer, collections=c_names)
                 self.q_next = tf.matmul(ladd, w2) + b2
 
     def store_transition(self, s, a, r, s_):
@@ -147,18 +146,6 @@ class DeepQNetwork:
 
         self.memory_counter += 1
 
-    def choose_action(self, observation):
-        # to have batch dimension when feed into tf placeholder
-        observation = observation[np.newaxis, :]
-
-        if np.random.uniform() < self.epsilon:
-            # forward feed the observation and get q value for every actions
-            actions_value = self.sess.run(self.q_eval, feed_dict={self.s: observation})
-            #print("actions_value:",actions_value)
-            action = np.argmax(actions_value[:, :self.n_actions])
-        else:
-            action = np.random.randint(0, self.n_actions)
-        return action
 
     def value_func(self, observation):
         observation = observation[np.newaxis, :]
@@ -192,22 +179,22 @@ class DeepQNetwork:
 
         #batch_index = np.arange(self.batch_size, dtype=np.int32)
 
-        eval_act_index = batch_memory[:, self.input_length:self.input_length+self.max_coop].astype(int)
+        eval_act_index = batch_memory[:, self.input_length:self.input_length+self.action_dim].astype(int)
         #print("eval_act_index:", eval_act_index.shape)
 
-        reward = batch_memory[:, self.input_length + self.max_coop].\
-            repeat(self.max_coop*self.n_actions).reshape(self.batch_size, self.max_coop*self.n_actions)  #  repeat max_coop*n_actions
+        reward = batch_memory[:, self.input_length + self.action_dim].\
+            repeat(self.output_length).reshape(self.batch_size, self.output_length)  #  repeat max_coop*n_actions
         #print("reward:", reward.shape)
 
-        m = np.zeros(shape=(self.batch_size, self.max_coop))  # batch_size,max_coop
+        m = np.zeros(shape=(self.batch_size, self.action_dim))  # batch_size,max_coop
         for i in range(self.batch_size):
-            for j in range(self.max_coop):
-                m[i, j] = max(q_next[i, self.n_actions*j:self.n_actions*j+self.n_actions])  # n_actions
+            for j in range(self.action_dim):
+                m[i, j] = max(q_next[i, self.action_space*j:self.action_space*(j+1)])  # n_actions
         #print("m:",m.shape)
 
         for i in range(self.batch_size):  # batch_size
-            for j in range(self.max_coop):  # actual_coop
-                q_target[i, self.n_actions * j + eval_act_index[i, j]] = reward[i, j] + self.gamma * m[i, j]
+            for j in range(self.action_dim):  # actual_coop
+                q_target[i, self.action_space * j + eval_act_index[i, j]] = reward[i, j] + self.gamma * m[i, j]
         #print("q_target:", q_target.shape,q_target)
         #q_target[batch_index, eval_act_index] = reward + self.gamma * np.max(q_next, axis=1)
 

@@ -23,10 +23,10 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                  use_gdm=True,
                  sess=None):
         DeepQNetwork.__init__(self,
+                              max_coop*(n_features+n_actions),
+                              max_coop*n_actions,
                               max_coop,
-                              n_agents,
                               n_actions,
-                              n_features,
                               learning_rate,
                               reward_decay,
                               e_greedy,
@@ -43,6 +43,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                          max_coop,
                          cll_ba,
                          max_discuss)
+        self.n_features = n_features
         self.use_gdm = use_gdm
         self.all_coop_sets = []  # all agents' coop set
         self.all_coop_sets_l = self.all_coop_sets  # all agents' coop set on last step
@@ -94,6 +95,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                 idx2 = np.append(idx2, idx_i2).astype(int)
             coop_state = np.append(coop_state, env_s[idx2])
             coop_state = np.append(coop_state, [0.25] * (self.max_coop*self.n_actions - len(coop_set)*self.n_actions))
+        
         return coop_state
 
     # find coop set and coop state for single agent in one step
@@ -139,12 +141,12 @@ class MAGDMRL(DeepQNetwork, GroupDM):
         cll = 0  # CLL
         discuss_cnt = 0
         self.all_coop_sets_l = self.all_coop_sets
+        env_s = np.append(env_s, [0.25]*self.n_agents*self.n_actions)
         while cll < self.cll_ba and discuss_cnt < self.max_discuss*3:
             self.new_space()
             join_act = []
             if self.use_gdm is True:
                 self.new_gdm_space()
-                env_s = np.append(env_s, np.array(self.all_sugg).flatten())
                 self.all_sugg = []
             # agents produce and store their prms
             for i in range(self.n_agents):
@@ -163,38 +165,12 @@ class MAGDMRL(DeepQNetwork, GroupDM):
 
             # agents get their aggregate prms and choose action by the suggestion
             for i in range(self.n_agents):
-                if self.use_gdm is True:
-                    w_prm = []  # wights for p_r_m s
-                    for e in self.who_give_suggestion[i]:
-                        w_prm_i = self.all_v_set[e][list(self.all_coop_sets[e]).index(i)]
-                        w_prm.append(w_prm_i)
-                    w_prm = w_prm-np.min(w_prm)+0.01
-                    w_prm = w_prm / sum(w_prm)
-                    a_prm = self.aggregate_prms(i, w_prm)
-
-                    cl_i = 0  # agent_i's sum of Consensus Level
-                    for p in range(len(self.who_give_suggestion[i])):
-                        #print("cli", cl_i)
-                        cl_i += self.con_level(self.all_agents_prms[i][p], a_prm)
-                    cl_i /= len(self.who_give_suggestion[i])
-                    self.all_cl.append(cl_i)
-                    sugg = self.a_prm_to_sugg(a_prm)
-                    self.all_sugg.append(sugg)
-                    if np.random.uniform() < self.epsilon:
-                        sugg = list(self.a_prm_to_sugg(a_prm))
-                        action = sugg.index(max(sugg))
-                    else:
-                        idx = list(self.a_prm_to_sugg(a_prm)).index(max(sugg))
-                        max_ = sugg[idx]
-                        sugg += max_/(self.n_actions-1)
-                        sugg[idx] = 0
-                        action = np.random.choice(range(self.n_actions), p=sugg)
-                    join_act.append(action)
-                else:
-                    action = self.choose_action(self.n_obv[i])
-                    join_act.append(action)
+                action = self.choose_action(i,self.n_obv[i])
+                join_act.append(action)
             if self.use_gdm is False:
                 break
+            else:
+                env_s = np.append(env_s, np.array(self.all_sugg).flatten())
 
             #print(wa,self.all_cl)
             cll = np.dot(wa, self.all_cl)
@@ -209,9 +185,49 @@ class MAGDMRL(DeepQNetwork, GroupDM):
         #print(join_act)
         return join_act, w_r
 
-    def store_n_transitions(self, last_obv, last_join_act, last_reward, l_w_r):
+    def choose_action(self, i, observation):
         if self.use_gdm is True:
-            l_r = last_reward * l_w_r
+            w_prm = []  # wights for p_r_m s
+            for e in self.who_give_suggestion[i]:
+                w_prm_i = self.all_v_set[e][list(self.all_coop_sets[e]).index(i)]
+                w_prm.append(w_prm_i)
+            w_prm = w_prm-np.min(w_prm)+0.01
+            w_prm = w_prm / sum(w_prm)
+            a_prm = self.aggregate_prms(i, w_prm)
+
+            cl_i = 0  # agent_i's sum of Consensus Level
+            for p in range(len(self.who_give_suggestion[i])):
+                #print("cli", cl_i)
+                cl_i += self.con_level(self.all_agents_prms[i][p], a_prm)
+            cl_i /= len(self.who_give_suggestion[i])
+            self.all_cl.append(cl_i)
+            sugg = self.a_prm_to_sugg(a_prm)
+            self.all_sugg.append(sugg)
+            if np.random.uniform() < self.epsilon:
+                sugg = list(self.a_prm_to_sugg(a_prm))
+                action = sugg.index(max(sugg))
+            else:
+                idx = list(self.a_prm_to_sugg(a_prm)).index(max(sugg))
+                max_ = sugg[idx]
+                sugg += max_/(self.n_actions-1)
+                sugg[idx] = 0
+                action = np.random.choice(range(self.n_actions), p=sugg)
+        else:
+            # to have batch dimension when feed into tf placeholder
+            observation = observation[np.newaxis, :]
+
+            if np.random.uniform() < self.epsilon:
+                # forward feed the observation and get q value for every actions
+                actions_value = self.sess.run(self.q_eval, feed_dict={self.s: observation})
+                #print("actions_value:",actions_value)
+                action = np.argmax(actions_value[:, :self.n_actions])
+            else:
+                action = np.random.randint(0, self.n_actions)
+        return action
+
+    def store_n_transitions(self, last_obv, last_join_act, reward, w_r):
+        if self.use_gdm is True:
+            l_r = reward * w_r
             #print("l_r:", l_r)
         for i in range(self.n_agents):
             last_coop_act = np.array(last_join_act)[self.all_coop_sets_l[i]]
@@ -220,4 +236,4 @@ class MAGDMRL(DeepQNetwork, GroupDM):
             if self.use_gdm is True:
                 self.store_transition(last_obv[i], last_coop_act, l_r[i], self.n_obv[i])
             else:
-                self.store_transition(last_obv[i], last_coop_act, last_reward, self.n_obv[i])
+                self.store_transition(last_obv[i], last_coop_act, reward, self.n_obv[i])
