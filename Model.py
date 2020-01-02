@@ -52,6 +52,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
         self.all_v_set = []  # all agents' v_set, e.g. 0's coop set is [0,1,2], all_v_set[i] = [v0,v1,v2]
         self.all_cl = []  # all agents' cl
         self.all_sugg = [0.25 for i in range(self.n_agents*self.n_actions)]  # all agents' final suggestions
+        self.all_sugg
 
     # new space for gdm operation in one step
     def new_gdm_space(self):
@@ -145,6 +146,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
         while cll < self.cll_ba and discuss_cnt < self.max_discuss*3:
             self.new_space()
             join_act = []
+            sugg_act = []
             if self.use_gdm is True:
                 self.new_gdm_space()
                 self.all_sugg = []
@@ -157,7 +159,10 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                     self.all_v_set.append(v_set)  # values of agents in coop set
                     self.av_exp_values[i] = av_v
                     for p in range(len(coop_set)):
+                        sugg_act.append(np.argmax(soft_max_q[p]))
                         self.prefer_relation_mtx(i, coop_set[p], soft_max_q[p])
+                    for j in range(self.max_coop-len(coop_set)):
+                        sugg_act.append(-1)
 
             if self.use_gdm is True:
                 wa = self.av_exp_values - np.min(self.av_exp_values) + 0.01
@@ -183,7 +188,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
         else:
             w_r = np.ones(self.n_agents)
         #print(join_act)
-        return join_act, w_r
+        return join_act, w_r, sugg_act
 
     def choose_action(self, i, observation):
         if self.use_gdm is True:
@@ -225,15 +230,16 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                 action = np.random.randint(0, self.n_actions)
         return action
 
-    def store_n_transitions(self, last_obv, last_join_act, reward, w_r):
+    def store_n_transitions(self, last_obv, last_sugg_act, reward, w_r):
         if self.use_gdm is True:
             l_r = reward * w_r
             #print("l_r:", l_r)
         for i in range(self.n_agents):
-            last_coop_act = np.array(last_join_act)[self.all_coop_sets_l[i]]
-            if len(last_coop_act) < self.max_coop:
-                last_coop_act = np.append(last_coop_act, [-1] * (self.max_coop - len(last_coop_act)))
+            #last_coop_act = np.array(last_join_act)[self.all_coop_sets_l[i]]
+            #if len(last_coop_act) < self.max_coop:
+                #last_coop_act = np.append(last_coop_act, [-1] * (self.max_coop - len(last_coop_act)))
+            last_sugg_coop_act = last_sugg_act[i*self.max_coop:(i+1)*self.max_coop]
             if self.use_gdm is True:
-                self.store_transition(last_obv[i], last_coop_act, l_r[i], self.n_obv[i])
+                self.store_transition(last_obv[i], last_sugg_coop_act, l_r[i], self.n_obv[i])
             else:
-                self.store_transition(last_obv[i], last_coop_act, reward, self.n_obv[i])
+                self.store_transition(last_obv[i], last_sugg_coop_act, reward, self.n_obv[i])

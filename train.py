@@ -1,15 +1,17 @@
 import tensorflow as tf
 import os
 
+
 def train_model(env, model, save_path, max_episode):
     step = 0
     cumulate_reward = 0
+    accident = False
     for episode in range(max_episode):
         print("train_episode", episode)
         env_s = env.reset()  # init env and return env state
         store_cost_flag = True  # if store cost
         counter = 0  # if end episode
-        join_act, w_r = model.run_model(env_s)  # 第一步
+        join_act, w_r, sugg_act = model.run_model(env_s)  # 第一步
         while True:  # one step
 
             # learn
@@ -25,15 +27,19 @@ def train_model(env, model, save_path, max_episode):
             env.render()
 
             #print("last",last_join_act)
-            #r = reward  # 上一步的奖励
             w_r_ = w_r  # 上一步的奖励系数
-            env_s, reward, done = env.step(join_act)  # 当前步
+            try:
+                env_s, reward, done = env.step(join_act)  # 当前步
+            except:
+                accident = True
+                break
             cumulate_reward = reward + cumulate_reward * 0.99
-            last_join_act = join_act  # 上一步的动作
+            #last_join_act = join_act  # 上一步的动作
+            last_sugg_act = sugg_act
             obv = model.n_obv  # 上一步的观察
-            join_act, w_r = model.run_model(env_s)  # 当前步
+            join_act, w_r, sugg_act = model.run_model(env_s)  # 当前步
             #print("now",join_act)
-            model.store_n_transitions(obv, last_join_act, reward, w_r_)  # 上一步到当前步的转移经验
+            model.store_n_transitions(obv, last_sugg_act, reward, w_r_)  # 上一步到当前步的转移经验
             if counter > 300 or done:
                 break
             counter += 1
@@ -42,6 +48,8 @@ def train_model(env, model, save_path, max_episode):
         # record cumulate rewards once an episode
         print("reward:", cumulate_reward)
         model.reward_his.append(cumulate_reward)
+        if accident:
+            break
 
     # save model
     saver = tf.train.Saver()
@@ -50,7 +58,8 @@ def train_model(env, model, save_path, max_episode):
     saver.save(model.sess, save_path)
     # end of game
     print('game over')
-    env.destroy()
+    if accident is False:
+        env.destroy()
 
     if not os.path.exists('data_for_plot'):
         os.makedirs('data_for_plot')
@@ -68,3 +77,4 @@ def train_model(env, model, save_path, max_episode):
 
     model.plot_cost()
     model.plot_reward()
+
