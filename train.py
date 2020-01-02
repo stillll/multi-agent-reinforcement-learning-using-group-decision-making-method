@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+import os
 
 def train_model(env, model, save_path, max_episode):
     step = 0
@@ -45,18 +45,22 @@ def train_model(env, model, save_path, max_episode):
 
     # save model
     saver = tf.train.Saver()
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
     saver.save(model.sess, save_path)
     # end of game
     print('game over')
     env.destroy()
 
-    write_rewards = open('../data_for_plot/3-2-reward_his.txt', 'w')
-    for ip in model.reward_his:
+    if not os.path.exists('data_for_plot'):
+        os.makedirs('data_for_plot')
+    write_rewards = open('data_for_plot/'+str(model.n_agents)+'-'+str(model.max_coop)+'-reward_his.txt', 'w+')
+    for ip in model.reward_his: 
         write_rewards.write(str(ip))
         write_rewards.write('\n')
     write_rewards.close()
 
-    write_costs = open('../data_for_plot/3-2-cost_his.txt', 'w')
+    write_costs = open('data_for_plot/'+str(model.n_agents)+'-'+str(model.max_coop)+'-cost_his.txt', 'w+')
     for ip in model.reward_his:
         write_costs.write(str(ip))
         write_costs.write('\n')
