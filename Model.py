@@ -201,10 +201,15 @@ class MAGDMRL(DeepQNetwork, GroupDM):
             a_prm = self.aggregate_prms(i, w_prm)
 
             cl_i = 0  # agent_i's sum of Consensus Level
+            """
             for p in range(len(self.who_give_suggestion[i])):
                 #print("cli", cl_i)
                 cl_i += self.con_level(self.all_agents_prms[i][p], a_prm)
             cl_i /= len(self.who_give_suggestion[i])
+            """
+            for p in self.all_coop_sets[i]:
+                cl_i += self.con_level(self.all_agents_prms[p][list(self.who_give_suggestion[p]).index(i)], a_prm)
+            cl_i /= len(self.all_coop_sets[i])
             self.all_cl.append(cl_i)
             sugg = self.a_prm_to_sugg(a_prm)
             self.all_sugg.append(sugg)
