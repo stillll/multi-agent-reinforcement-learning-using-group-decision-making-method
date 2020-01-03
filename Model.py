@@ -175,7 +175,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
             if self.use_gdm is False:
                 break
             else:
-                env_s = np.append(env_s, np.array(self.all_sugg).flatten())
+                env_s = np.append(env_s[:self.n_agents*self.n_features], np.array(self.all_sugg).flatten())
 
             #print(wa,self.all_cl)
             cll = np.dot(wa, self.all_cl)
