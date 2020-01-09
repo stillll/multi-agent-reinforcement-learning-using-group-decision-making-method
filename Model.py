@@ -21,28 +21,29 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                  e_greedy_increment=None,
                  output_graph=False,
                  use_gdm=True,
+                 discuss=True,
                  sess=None):
         DeepQNetwork.__init__(self,
-                              max_coop*(n_features+n_actions),
-                              max_coop*n_actions,
-                              max_coop,
-                              n_actions,
-                              learning_rate,
-                              reward_decay,
-                              e_greedy,
-                              replace_target_iter,
-                              memory_size,
-                              batch_size,
-                              e_greedy_increment,
-                              output_graph,
-                              use_gdm,
-                              sess)
+                              input_length=max_coop*(n_features+n_actions) if discuss is True else max_coop*n_features,
+                              output_length=max_coop * n_actions,
+                              action_dim=max_coop,
+                              action_space=n_actions,
+                              learning_rate=learning_rate,
+                              reward_decay=reward_decay,
+                              e_greedy=e_greedy,
+                              replace_target_iter=replace_target_iter,
+                              memory_size=memory_size,
+                              batch_size=batch_size,
+                              e_greedy_increment=e_greedy_increment,
+                              output_graph=output_graph,
+                              sess=sess)
         GroupDM.__init__(self,
                          n_actions,
                          n_agents,
                          max_coop,
                          cll_ba,
                          max_discuss)
+        self.discuss = discuss
         self.n_features = n_features
         self.use_gdm = use_gdm
         self.all_coop_sets = []  # all agents' coop set
@@ -52,7 +53,6 @@ class MAGDMRL(DeepQNetwork, GroupDM):
         self.all_v_set = []  # all agents' v_set, e.g. 0's coop set is [0,1,2], all_v_set[i] = [v0,v1,v2]
         self.all_cl = []  # all agents' cl
         self.all_sugg = [0.25 for i in range(self.n_agents*self.n_actions)]  # all agents' final suggestions
-        self.all_sugg
 
     # new space for gdm operation in one step
     def new_gdm_space(self):
@@ -87,7 +87,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
         coop_state = env_s[idx]
         coop_state = np.append(coop_state, [-2]*(self.max_coop*self.n_features-len(coop_state)))
         #print("2",coop_state)
-        if self.use_gdm is True:
+        if self.discuss is True:
             start2 = [a * self.n_actions + self.n_agents * self.n_features for a in coop_set]
             end2 = [a + self.n_actions - 1 for a in start2]
             idx2 = np.array([])
@@ -181,6 +181,8 @@ class MAGDMRL(DeepQNetwork, GroupDM):
             cll = np.dot(wa, self.all_cl)
             #print("cll",cll)
             discuss_cnt += 1
+            if self.discuss is False:
+                break
 
         # weights for reward assignment
         if self.use_gdm is True:
@@ -235,16 +237,18 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                 action = np.random.randint(0, self.n_actions)
         return action
 
-    def store_n_transitions(self, last_obv, last_sugg_act, reward, w_r):
+    def store_n_transitions(self, last_obv, last_join_act, last_sugg_act, reward, w_r):
         if self.use_gdm is True:
             l_r = reward * w_r
             #print("l_r:", l_r)
         for i in range(self.n_agents):
-            #last_coop_act = np.array(last_join_act)[self.all_coop_sets_l[i]]
-            #if len(last_coop_act) < self.max_coop:
-                #last_coop_act = np.append(last_coop_act, [-1] * (self.max_coop - len(last_coop_act)))
-            last_sugg_coop_act = last_sugg_act[i*self.max_coop:(i+1)*self.max_coop]
-            if self.use_gdm is True:
+            if self.discuss is True:
+                last_sugg_coop_act = last_sugg_act[i * self.max_coop:(i + 1) * self.max_coop]
                 self.store_transition(last_obv[i], last_sugg_coop_act, l_r[i], self.n_obv[i])
             else:
-                self.store_transition(last_obv[i], last_sugg_coop_act, reward, self.n_obv[i])
+                last_coop_act = np.array(last_join_act)[self.all_coop_sets_l[i]]
+                last_coop_act = np.append(last_coop_act, [-1] * (self.max_coop - len(last_coop_act)))
+                if self.use_gdm is True:
+                    self.store_transition(last_obv[i], last_coop_act, l_r[i], self.n_obv[i])
+                else:
+                    self.store_transition(last_obv[i], last_coop_act, reward, self.n_obv[i])
