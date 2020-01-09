@@ -6,7 +6,7 @@ def test_model(env, model, max_episode):
     for episode in range(max_episode):
         print("test_episode", episode)
         env_s = env.reset()  # init env and return env state
-        #print(env_s)
+        # print(env_s)
         counter = 0  # if end episode
         while True:  # one step
             # fresh env
