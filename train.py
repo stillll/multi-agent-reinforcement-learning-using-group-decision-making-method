@@ -1,7 +1,6 @@
 import tensorflow as tf
 import os
 
-
 def train_model(env, model, save_path, max_episode):
     step = 0
     cumulate_reward = 0
@@ -21,10 +20,6 @@ def train_model(env, model, save_path, max_episode):
                 store_cost_flag = False
 
             # break while loop when end of this episode
-
-
-            # fresh env
-            env.render()
 
             #print("last",last_join_act)
             w_r_ = w_r  # 上一步的奖励系数
@@ -58,8 +53,8 @@ def train_model(env, model, save_path, max_episode):
     saver.save(model.sess, save_path)
     # end of game
     print('game over')
-    if accident is False:
-        env.destroy()
+    #if accident is False:
+        #env.destroy()
 
     if not os.path.exists('data_for_plot'):
         os.makedirs('data_for_plot')

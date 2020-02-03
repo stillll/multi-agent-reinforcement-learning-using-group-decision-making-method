@@ -20,8 +20,8 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                  batch_size=32,
                  e_greedy_increment=None,
                  output_graph=False,
-                 use_gdm=True,
-                 discuss=True,
+                 use_gdm=False,
+                 discuss=False,
                  sess=None):
         DeepQNetwork.__init__(self,
                               input_length=max_coop*(n_features+n_actions) if discuss is True else max_coop*n_features,
