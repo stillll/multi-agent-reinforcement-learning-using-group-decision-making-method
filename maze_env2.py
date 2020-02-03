@@ -105,7 +105,7 @@ class Maze(tk.Tk, object):
 
     def reset(self):
         self.update()
-        time.sleep(0.1)
+        #time.sleep(0.1)
         self.canvas.delete(self.oval)
         self.canvas.delete(self.rect)
         self.canvas.delete(self.rect2)
@@ -130,9 +130,10 @@ class Maze(tk.Tk, object):
             origin[0] + 320 + 15, origin[1] + 320 + 15,
             fill='blue')
         # return observation
-        return np.hstack(((np.array(self.canvas.coords(self.rect)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H*UNIT),
+        env_s = np.hstack(((np.array(self.canvas.coords(self.rect)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H*UNIT),
                          (np.array(self.canvas.coords(self.rect2)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H*UNIT),
                          (np.array(self.canvas.coords(self.rect3)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H*UNIT)))
+        return env_s[:self.n_agents*self.n_features]
 
     """
     def env_s(self):
@@ -212,12 +213,47 @@ class Maze(tk.Tk, object):
         else:
             reward = -0.1
             done = False
+        '''#print(next_coords[0],next_coords2[0],next_coords3[0],(MAZE_H - 1) * UNIT,UNIT)
+        if next_coords[0] > (MAZE_H - 1) * UNIT or next_coords2[0] > (MAZE_H - 1) * UNIT:
+            reward = -0.1
+            #print('q')
+            done = False
+        elif next_coords[0] < UNIT or next_coords2[0] < UNIT:
+            reward = -0.1
+            #print('w')
+            done = False
+        elif next_coords[1] > (MAZE_H - 1) * UNIT or next_coords2[1] > (MAZE_H - 1) * UNIT:
+            reward = -0.1
+            #print('e')
+            done = False
+        elif next_coords[1] < UNIT or next_coords2[1] < UNIT:
+            reward = -0.1
+            #print('r')
+            done = False
+        elif next_coords[0] == next_coords2[0] and next_coords3[0] == next_coords2[0]:
+            reward = 0.4
+            #print(1)
+            done = False
+        elif next_coords[0] == next_coords2[0]:
+            reward = 0.2
+            done = False
+        elif next_coords3[0] == next_coords2[0]:
+            reward = 0.2
+            #print(2)
+            done = False
+        elif next_coords3[0] == next_coords[0]:
+            reward = 0.2
+            #print(3)
+            done = False
+        else:
+            reward = -0.1
+            done = False'''
         env_s_ = np.hstack(((np.array(self.canvas.coords(self.rect)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H * UNIT),
                             (np.array(self.canvas.coords(self.rect2)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H * UNIT),
                             (np.array(self.canvas.coords(self.rect3)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H * UNIT)))
-        return env_s_, reward, done
+        return env_s_[:self.n_agents*self.n_features], reward, done
 
     def render(self):
-        time.sleep(0.01)
+        #time.sleep(0.01)
         self.update()
 
