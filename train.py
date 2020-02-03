@@ -6,7 +6,7 @@ def train_model(env, model, save_path, max_episode):
     cumulate_reward = 0
     accident = False
     for episode in range(max_episode):
-        if episode % 10 == 0:
+        if episode % 100 == 0:
             print("train_episode", episode)
         env_s = env.reset()  # init env and return env state
         store_cost_flag = True  # if store cost
@@ -42,7 +42,7 @@ def train_model(env, model, save_path, max_episode):
 
 
         # record cumulate rewards once an episode
-        if episode % 10 == 0:
+        if episode % 100 == 0:
             print("reward:", cumulate_reward)
         model.reward_his.append(cumulate_reward)
         if accident:
