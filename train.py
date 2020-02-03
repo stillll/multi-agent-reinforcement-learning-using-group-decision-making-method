@@ -41,7 +41,8 @@ def train_model(env, model, save_path, max_episode):
 
 
         # record cumulate rewards once an episode
-        print("reward:", cumulate_reward)
+        if episode % 10 == 0:
+            print("reward:", cumulate_reward)
         model.reward_his.append(cumulate_reward)
         if accident:
             break
