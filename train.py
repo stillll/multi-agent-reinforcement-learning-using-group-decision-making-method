@@ -1,16 +1,22 @@
 import tensorflow as tf
 import os
+import pdb
 
 def train_model(env, model, save_path, max_episode):
     step = 0
     cumulate_reward = 0
     accident = False
     for episode in range(max_episode):
-        if episode % 100 == 0:
+        if episode % 20000 == 0 and episode > 50000:
+            model.plot_cost()
+            model.plot_reward()
+            pdb.set_trace()
+        if episode % 1000 == 0:
             print("train_episode", episode)
         env_s = env.reset()  # init env and return env state
         store_cost_flag = True  # if store cost
         counter = 0  # if end episode
+        #cumulate_reward = 0
         join_act, w_r, sugg_act = model.run_model(env_s)  # 第一步
         while True:  # one step
 
@@ -29,7 +35,7 @@ def train_model(env, model, save_path, max_episode):
             except:
                 accident = True
                 break
-            cumulate_reward = reward + cumulate_reward * 0.99
+            cumulate_reward = reward + cumulate_reward
             last_join_act = join_act  # 上一步的动作
             last_sugg_act = sugg_act
             obv = model.n_obv  # 上一步的观察
@@ -42,7 +48,7 @@ def train_model(env, model, save_path, max_episode):
 
 
         # record cumulate rewards once an episode
-        if episode % 100 == 0:
+        if episode % 1000 == 0:
             print("reward:", cumulate_reward)
         model.reward_his.append(cumulate_reward)
         if accident:

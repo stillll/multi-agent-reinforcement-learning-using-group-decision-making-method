@@ -20,7 +20,7 @@ class Maze():
         self.n_agents = n_agents
         aimposx = random.randint(0, self.maze_w-1)
         aimposy = random.randint(0, self.maze_h-1)
-        self.aimpos = np.array([aimposx,aimposy])
+        self.aimpos = np.array([5,5])
         self.agent1 = np.array([0,0])
         self.agent2 = np.array([0,self.maze_h-1])
         self.agent3 = np.array([self.maze_w-1,0])
@@ -33,7 +33,7 @@ class Maze():
     def reset(self):
         aimposx = random.randint(0, self.maze_w-1)
         aimposy = random.randint(0, self.maze_h-1)
-        self.aimpos = np.array([aimposx,aimposy])
+        self.aimpos = np.array([5,5])
         self.agent1 = np.array([0,0])
         self.agent2 = np.array([0,self.maze_h-1])
         self.agent3 = np.array([self.maze_w-1,0])
