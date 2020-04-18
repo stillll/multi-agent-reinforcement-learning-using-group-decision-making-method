@@ -50,7 +50,7 @@ class DeepQNetwork:
         self.batch_size = batch_size
         self.epsilon_increment = e_greedy_increment
         self.epsilon = 0 if e_greedy_increment is not None else self.epsilon_max
-
+        self.replace_flag = False
         # total learning step
         self.learn_step_counter = 0
 
@@ -77,6 +77,7 @@ class DeepQNetwork:
 
         self.cost_his = []
         self.reward_his = []
+        self.memory_counter = 0
 
     def _build_net(self):
         # ------------------ build evaluate_net ------------------
@@ -153,8 +154,11 @@ class DeepQNetwork:
         return v
 
     def learn(self, flag):
+        if self.memory_counter == 0:
+            return
         # check to replace target parameters
         if self.learn_step_counter % self.replace_target_iter == 0:
+            self.replace_flag = True
             self.sess.run(self.replace_target_op)
             #print('\ntarget_params_replaced\n')
 
@@ -193,7 +197,12 @@ class DeepQNetwork:
         #print("m:",m.shape)
 
         for i in range(self.batch_size):  # batch_size
-            for j in range(self.action_dim):  # actual_coop
+            real_coop_count = 0
+            for j in range(self.action_dim):
+                if eval_act_index[i, j] == -1:
+                    break
+                real_coop_count = real_coop_count + 1
+            for j in range(real_coop_count):  # actual_coop
                 q_target[i, self.action_space * j + eval_act_index[i, j]] = reward[i, j] + self.gamma * m[i, j]
         #print("q_target:", q_target.shape,q_target)
         #q_target[batch_index, eval_act_index] = reward + self.gamma * np.max(q_next, axis=1)

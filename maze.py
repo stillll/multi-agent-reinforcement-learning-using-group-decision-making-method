@@ -81,10 +81,10 @@ class Maze():
                 or all(self.agent3 == self.aimpos) or all(self.agent4 == self.aimpos):
             reward = 5
             done = True
-        elif all(self.agent1 == self.agent2) or all(self.agent1 == self.agent3) or all(self.agent2 == self.agent3) \
-            or all(self.agent1 == self.agent4) or all(self.agent2 == self.agent4) or all(self.agent3 == self.agent4):
-            reward = -1
-            done = False
+        #elif all(self.agent1 == self.agent2) or all(self.agent1 == self.agent3) or all(self.agent2 == self.agent3) \
+            #or all(self.agent1 == self.agent4) or all(self.agent2 == self.agent4) or all(self.agent3 == self.agent4):
+            #reward = -1
+            #done = False
         else:
             reward = -0.1
             done = False

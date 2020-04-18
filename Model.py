@@ -144,6 +144,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
         cll = 0  # CLL
         discuss_cnt = 0
         env_s = np.append(env_s, [0.25]*self.n_agents*self.n_actions)
+        self.all_coop_sets_l = self.all_coop_sets
         while cll < self.cll_ba and discuss_cnt < self.max_discuss*3:
             self.new_space()
             join_act = []
@@ -186,7 +187,6 @@ class MAGDMRL(DeepQNetwork, GroupDM):
             discuss_cnt += 1
             if self.discuss is False:
                 break
-        self.all_coop_sets_l = self.all_coop_sets
         # weights for reward assignment
         if self.use_gdm is True:
             w_r = np.array(self.all_cl)
@@ -323,5 +323,4 @@ class MAGDMRL(DeepQNetwork, GroupDM):
 
 
 
-# TODO: 两拍之间协同集可变，但在存入经验池中时，前后两拍的状态列表应当是协同集相同的两组。
 # TODO: 存入经验池等功能应当与模型分开，以便在train中进行各种操作。
