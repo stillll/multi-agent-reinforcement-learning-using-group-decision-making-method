@@ -133,7 +133,7 @@ class Maze(tk.Tk, object):
         env_s = np.hstack(((np.array(self.canvas.coords(self.rect)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H*UNIT),
                          (np.array(self.canvas.coords(self.rect2)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H*UNIT),
                          (np.array(self.canvas.coords(self.rect3)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H*UNIT)))
-        return env_s[:self.n_agents*self.n_features]
+        return env_s[:self.n_agents*self.n_features]*9
 
     """
     def env_s(self):
@@ -251,7 +251,8 @@ class Maze(tk.Tk, object):
         env_s_ = np.hstack(((np.array(self.canvas.coords(self.rect)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H * UNIT),
                             (np.array(self.canvas.coords(self.rect2)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H * UNIT),
                             (np.array(self.canvas.coords(self.rect3)[:2]) - np.array(self.canvas.coords(self.oval)[:2]))/(MAZE_H * UNIT)))
-        return env_s_[:self.n_agents*self.n_features], reward, done
+        time.sleep(0.01)
+        return env_s_[:self.n_agents*self.n_features]*9, reward, done
 
     def render(self):
         #time.sleep(0.01)

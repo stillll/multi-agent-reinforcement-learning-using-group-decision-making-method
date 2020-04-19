@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import matplotlib.pyplot as plt
-
+import pdb
 np.random.seed(1)
 tf.set_random_seed(1)
 
@@ -77,6 +77,7 @@ class DeepQNetwork:
 
         self.cost_his = []
         self.reward_his = []
+        self.action_value_his = [[],[],[],[]]
         self.memory_counter = 0
 
     def _build_net(self):
@@ -255,4 +256,13 @@ class DeepQNetwork:
         plt.plot(np.arange(len(self.reward_his)), self.reward_his)
         plt.ylabel('reward')
         plt.xlabel('episode')
+        plt.show()
+
+    def plot_actions_value(self):
+        plt.plot(np.arange(len(self.action_value_his[0])), self.action_value_his[0],color='red')
+        plt.plot(np.arange(len(self.action_value_his[1])), self.action_value_his[1],color='green')
+        plt.plot(np.arange(len(self.action_value_his[2])), self.action_value_his[2],color='blue')
+        plt.plot(np.arange(len(self.action_value_his[3])), self.action_value_his[3],color='black')
+        plt.ylabel('actions_value')
+        plt.xlabel('step')
         plt.show()

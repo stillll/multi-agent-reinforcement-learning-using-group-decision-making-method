@@ -1,5 +1,5 @@
 import argparse
-from maze import Maze
+from maze_env2 import Maze
 #from coop_env import Coop
 from Model import MAGDMRL
 import tensorflow as tf

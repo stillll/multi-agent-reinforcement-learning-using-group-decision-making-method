@@ -86,7 +86,7 @@ class Maze():
             #reward = -1
             #done = False
         else:
-            reward = -0.1
+            reward = 0#-0.1
             done = False
 
         '''#print(next_coords[0],next_coords2[0],next_coords3[0],(MAZE_H - 1) * UNIT,UNIT)
