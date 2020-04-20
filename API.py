@@ -1,6 +1,6 @@
 import argparse
 from maze_env2 import Maze
-from coop_env import Coop
+#from coop_env import Coop
 from Model import MAGDMRL
 import tensorflow as tf
 from test import test_model
@@ -51,10 +51,10 @@ def parse_args():
 
 
 def make_env(arglist):
-    if arglist.MAgent:
-        env = Coop(arglist)
-    else:
-        env = Maze(n_agents=arglist.num_agent, max_coop=arglist.max_coop)
+    #if arglist.MAgent:
+        #env = Coop(arglist)
+    #else:
+    env = Maze(n_agents=arglist.num_agent)
     return env
 
 
@@ -85,11 +85,9 @@ def train_or_test(arglist):
     if arglist.model_exist:
         saver = tf.train.Saver()
         saver.restore(model.sess, tf.train.latest_checkpoint(arglist.save_path))
-        env.after(100, test_model(env, model, max_episode=100))
-        env.mainloop()
+        test_model(env, model, max_episode=100)
     else:
-        env.after(100, train_model(env, model, arglist.save_path + arglist.model_name, max_episode=arglist.max_episode))
-        env.mainloop()
+        train_model(env, model, arglist.save_path + arglist.model_name, max_episode=arglist.max_episode)
 
 
 if __name__ == '__main__':
