@@ -24,3 +24,11 @@
 .vscode/.ropeproject/config.py
 .vscode/.ropeproject/objectdb
 MAgent/
+2-2_non-gdm/checkpoint
+3-2_gdm/checkpoint
+1-1-non-gdm/checkpoint
+3-2-gdm-1-9/checkpoint
+3-2-non-gdm/checkpoint
+debugs/checkpoint
+DQN_torch.py
+tst.py

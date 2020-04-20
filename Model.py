@@ -21,7 +21,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                  e_greedy_increment=None,
                  output_graph=False,
                  use_gdm=True,
-                 discuss=True,
+                 discuss=False,
                  sess=None):
         DeepQNetwork.__init__(self,
                               input_length=max_coop*(n_features+n_actions) if discuss is True else max_coop*n_features,
@@ -238,7 +238,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
         return action
 
     def store_n_transitions(self, last_obv, last_join_act, last_sugg_act, reward, w_r):
-        if self.use_gdm is True:
+        if self.use_gdm or self.discuss:
             l_r = reward * w_r
             #print("l_r:", l_r)
         for i in range(self.n_agents):
@@ -251,4 +251,9 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                 if self.use_gdm is True:
                     self.store_transition(last_obv[i], last_coop_act, l_r[i], self.n_obv[i])
                 else:
+                    print("-----------------------------------")
+                    print(last_obv[i])
+                    print(last_coop_act)
+                    print(reward)
+                    print(self.n_obv[i])
                     self.store_transition(last_obv[i], last_coop_act, reward, self.n_obv[i])

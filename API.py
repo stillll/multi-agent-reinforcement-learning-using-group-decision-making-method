@@ -15,19 +15,19 @@ def parse_args():
     # Environment
     parser.add_argument("--scenario", type=str, default="pursuit", help="name of the scenario script")
     parser.add_argument("--map_size", type=int, default=100, help="the size of map")
-    parser.add_argument("--num_1", type=int, default=3, help="the number of group_1")
+    parser.add_argument("--num_1", type=int, default=2, help="the number of group_1")
     parser.add_argument("--num_2", type=int, default=20, help="the number of group_2")
     parser.add_argument("--num_walls", type=int, default=100, help="the number of the walls")
 
     # model attributes
     parser.add_argument("--alg", default='dqn', choices=['dqn', 'drqn', 'a2c', 'gdm'])
     parser.add_argument("--max_step", type=int, default=300, help='the max step of a episode')
-    parser.add_argument("--save_path", type=str, default="3-2gdm-discuss/", help="the path to save")
+    parser.add_argument("--save_path", type=str, default="debugs/", help="the path to save")
     parser.add_argument("--model_name", type=str, default="MAGDMRL", help="the path for model to save")
     parser.add_argument("--model_exist", type=bool, default=False, help="if use the exist model")
-    parser.add_argument("--num_episodes", type=int, default=10000, help="number of episodes")
+    parser.add_argument("--num_episodes", type=int, default=1000, help="number of episodes")
     parser.add_argument("--max_coop", type=int, default=2, help="max number of cooperate agents")
-    parser.add_argument("--use_gdm", type=bool, default=True, help="if use the gdm policy")
+    parser.add_argument("--use_gdm", type=bool, default=False, help="if use the gdm policy")
     parser.add_argument("--n_features", type=int, default=2, help="the feature dimension")
 
     parser.add_argument("--max_discuss", type=int, default=1)
