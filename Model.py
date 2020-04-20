@@ -320,7 +320,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
         return ans
 
     def store_n_transitions(self, last_obv, last_join_act, last_sugg_act, reward, w_r):
-        aaa = False
+        '''aaa = False
         if reward > 4:
             aaa = True
             for jjj in range(self.n_agents):
@@ -331,7 +331,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                 if reward < 4:
                     aaa = True
         if aaa:
-                pdb.set_trace()
+                pdb.set_trace()'''
         for i in range(self.n_agents):
             if self.discuss is True:
                 last_sugg_coop_act = last_sugg_act[i * self.max_coop:(i + 1) * self.max_coop]
@@ -340,11 +340,11 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                 last_coop_act = np.array(last_join_act)[self.all_coop_sets_l[i]]
                 last_coop_act = np.append(last_coop_act, [-1] * (self.max_coop - len(last_coop_act)))
                 if self.use_gdm is True:
-                    if self.step_test(last_obv[i], last_coop_act, self.store_n_obv[i]):
+                    if True:#self.step_test(last_obv[i], last_coop_act, self.store_n_obv[i]):
                         l_r = reward * w_r
                         self.store_transition(last_obv[i], last_coop_act, l_r[i], self.store_n_obv[i])
                 else:
-                    if self.step_test(last_obv[i], last_coop_act, self.store_n_obv[i]):
+                    if True:#self.step_test(last_obv[i], last_coop_act, self.store_n_obv[i]):
                         self.store_transition(last_obv[i], last_coop_act, reward, self.store_n_obv[i])
                         if i == 0:
                             self.sum_1 = self.sum_1 + 1
