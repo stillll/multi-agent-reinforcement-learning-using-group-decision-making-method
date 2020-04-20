@@ -138,6 +138,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                 e[i] = e[i]*self.epsilon + (1-self.epsilon)/len(e)
         return coop_set, coop_state_i, soft_max_q, v_set, a_value
 
+    # input state, output join actions in one step
     def run_model(self, env_s):
         cll = 0  # CLL
         discuss_cnt = 0
@@ -192,6 +193,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
         #print(join_act)
         return join_act, w_r, sugg_act
 
+    # choose action in one step
     def choose_action(self, i, observation):
         if self.use_gdm is True:
             w_prm = []  # wights for p_r_m s
@@ -237,6 +239,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                 action = np.random.randint(0, self.n_actions)
         return action
 
+    # store experiences
     def store_n_transitions(self, last_obv, last_join_act, last_sugg_act, reward, w_r):
         if self.use_gdm is True:
             l_r = reward * w_r
