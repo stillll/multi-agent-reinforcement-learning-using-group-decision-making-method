@@ -9,6 +9,10 @@
 .pytest_cache/v/cache/nodeids
 .idea/misc.xml
 .idea/workspace.xml___jb_tmp___
+
+.vscode/.ropeproject/config.py
+.vscode/.ropeproject/objectdb
+
 *.index
 *.meta
 *.data-00000-of-00001
@@ -19,8 +23,12 @@
 3-2model_non_gdm/checkpoint
 3-3model/checkpoint
 3-3model_non_gdm/checkpoint
+
+
 3-2gdm-discuss/checkpoint
 3-3gdm-discuss/checkpoint
+
+
 .vscode/.ropeproject/config.py
 .vscode/.ropeproject/objectdb
 MAgent/
@@ -40,3 +48,4 @@ tst.py
 3-2_gdm/checkpoint
 debugs/checkpoint
 DQN_torch.py
+
