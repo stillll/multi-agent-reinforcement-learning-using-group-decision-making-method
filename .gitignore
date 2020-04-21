@@ -32,3 +32,11 @@ MAgent/
 debugs/checkpoint
 DQN_torch.py
 tst.py
+tst.py
+1-1-non-gdm/checkpoint
+2-2_non-gdm/checkpoint
+3-2-non-gdm/checkpoint
+3-2-gdm-1-9/checkpoint
+3-2_gdm/checkpoint
+debugs/checkpoint
+DQN_torch.py
