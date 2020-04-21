@@ -195,7 +195,6 @@ class GameEnv:
             agent2_action_return = self.agent2_actions[agent2_action](env_x_size=self.size_x, env_y_size=self.size_y)
             self.agent2_beam_set = [] if agent2_action != 6 else agent2_action_return
 
-
         if not self.agent1.is_hidden() and not self.agent2.is_hidden() and\
                 ((self.agent1.x == self.agent2.x and self.agent1.y == self.agent2.y) or
                      (self.agent1.x == agent2_old_x and self.agent1.y == agent2_old_y and
