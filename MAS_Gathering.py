@@ -7,33 +7,33 @@ import scipy.misc
 
 
 class AgentObj:
-    def __init__(self, coordinates, type, name, direction=0, mark=0, blood=1):
+    def __init__(self, coordinates, type, name, direction=0, mark=0, hidden=1):
         self.x = coordinates[0]
         self.y = coordinates[1]
         # 0: r, 1: g, 3: b
         self.type = type
         self.name = name
-        self.blood = blood
+        self.hidden = hidden
 
         # 0: right, 1:top 2: left. 3: bottom
         self.direction = direction
         self.mark = mark
 
-    def is_blood(self):
-        return self.blood < 0
+    def is_hidden(self):
+        return self.hidden < 0
 
-    def add_mark(self, agent_blood):
+    def add_mark(self, agent_hidden):
         pass
         # self.mark += 1
         # if self.mark >= 2:
         #     self.mark = 0
-        #     self.blood = agent_blood
+        #     self.hidden = agent_hidden
         # return self.mark
 
-    def sub_blood(self):
-        # self.blood -= 1
-        self.blood = 0 if self.blood <= 0 else self.blood
-        return self.blood
+    def sub_hidden(self):
+        # self.hidden -= 1
+        self.hidden = 0 if self.hidden <= 0 else self.hidden
+        return self.hidden
 
     def turn_left(self, **kwargs):
         self.direction = (self.direction + 1) % 4
@@ -119,35 +119,35 @@ class AgentObj:
 
 
 class FoodObj:
-    def __init__(self, coordinates, type=1, blood=1, reward=1):
+    def __init__(self, coordinates, type=1, hidden=1, reward=1):
         self.x = coordinates[0]
         self.y = coordinates[1]
         self.type = type
-        self.blood = blood
+        self.hidden = hidden
         self.reward = reward
 
-    # def is_blood(self):
-        # return self.blood > 0
-    def is_blood(self):
-        return self.blood <= 0
+    # def is_hidden(self):
+        # return self.hidden > 0
+    def is_hidden(self):
+        return self.hidden <= 0
 
-    def eat(self, food_blood):
-        # self.blood = food_blood
+    def eat(self, food_hidden):
+        # self.hidden = food_hidden
         return self.reward
 
-    def sub_blood(self):
-        self.blood -= 1
-        self.blood = 0 if self.blood <= 0 else self.blood
-        return self.blood
+    def sub_hidden(self):
+        self.hidden -= 1
+        self.hidden = 0 if self.hidden <= 0 else self.hidden
+        return self.hidden
 
 
 class GameEnv:
-    def __init__(self, widht=31, hight=11, agent_blood=5, food_blood=4):
+    def __init__(self, widht=31, hight=11, agent_hidden=5, food_hidden=4):
         self.size_x = widht
         self.size_y = hight
         self.objects = []
-        self.agent_blood = agent_blood
-        self.food_blood = food_blood
+        self.agent_hidden = agent_hidden
+        self.food_hidden = food_hidden
 
         # 0: forward, 1: backward, 2: left, 3: right
         # 4: trun lelf, 5:turn right, 6: beam, 7: stay
@@ -183,19 +183,19 @@ class GameEnv:
         agent1_old_x, agent1_old_y = self.agent1.x, self.agent1.y
         agent2_old_x, agent2_old_y = self.agent2.x, self.agent2.y
 
-        self.agent1.sub_blood()
-        self.agent2.sub_blood()
+        self.agent1.sub_hidden()
+        self.agent2.sub_hidden()
 
         self.agent1_beam_set = []
         self.agent2_beam_set = []
-        if not self.agent1.is_blood():
+        if not self.agent1.is_hidden():
             agent1_action_return = self.agent1_actions[agent1_action](env_x_size=self.size_x, env_y_size=self.size_y)
             self.agent1_beam_set = [] if agent1_action != 6 else agent1_action_return
-        if not self.agent2.is_blood():
+        if not self.agent2.is_hidden():
             agent2_action_return = self.agent2_actions[agent2_action](env_x_size=self.size_x, env_y_size=self.size_y)
             self.agent2_beam_set = [] if agent2_action != 6 else agent2_action_return
 
-        if not self.agent1.is_blood() and not self.agent2.is_blood() and\
+        if not self.agent1.is_hidden() and not self.agent2.is_hidden() and\
                 ((self.agent1.x == self.agent2.x and self.agent1.y == self.agent2.y) or
                      (self.agent1.x == agent2_old_x and self.agent1.y == agent2_old_y and
                               self.agent2.x == agent1_old_x and self.agent2.y == agent1_old_y)):
@@ -205,29 +205,29 @@ class GameEnv:
 
         agent1_reward = 0
         agent2_reward = 0
-        food_blood = []
+        food_hidden = []
         for food in self.food_objects:
-            # food.sub_blood()
-            if not food.is_blood():
-                if not self.agent1.is_blood() and food.x == self.agent1.x and food.y == self.agent1.y:
-                    agent1_reward = food.eat(self.food_blood)
-                    food.sub_blood()
-                    food_blood.append(food.sub_blood())
-                elif not self.agent2.is_blood() and food.x == self.agent2.x and food.y == self.agent2.y:
-                    agent2_reward = food.eat(self.food_blood)
-                    food.sub_blood()
-                    food_blood.append(food.sub_blood())
+            # food.sub_hidden()
+            if not food.is_hidden():
+                if not self.agent1.is_hidden() and food.x == self.agent1.x and food.y == self.agent1.y:
+                    agent1_reward = food.eat(self.food_hidden)
+                    food.sub_hidden()
+                    food_hidden.append(food.sub_hidden())
+                elif not self.agent2.is_hidden() and food.x == self.agent2.x and food.y == self.agent2.y:
+                    agent2_reward = food.eat(self.food_hidden)
+                    food.sub_hidden()
+                    food_hidden.append(food.sub_hidden())
 
-        food_blood = np.array(food_blood)
-        if np.all(food_blood == 0):
+        food_hidden = np.array(food_hidden)
+        if np.all(food_hidden == 0):
             done = True
         else:
             done = False
 
         if (self.agent1.x, self.agent1.y) in self.agent2_beam_set:
-            self.agent1.add_mark(self.agent_blood)
+            self.agent1.add_mark(self.agent_hidden)
         if (self.agent2.x, self.agent2.y) in self.agent1_beam_set:
-            self.agent2.add_mark(self.agent_blood)
+            self.agent2.add_mark(self.agent_hidden)
 
         return agent1_reward, agent2_reward, done
 
@@ -246,20 +246,20 @@ class GameEnv:
             a[y + 1, x + 1, 2] = 0.5
 
         for food in self.food_objects:
-            if not food.is_blood():  # 如果food满血，那就显示出颜色，按照他的类型显示
+            if not food.is_hidden():  # 如果food满血，那就显示出颜色，按照他的类型显示
                 for i in range(3):
                     a[food.y + 1, food.x + 1, i] = 1 if i == food.type else 0
 
         for i in range(3):  # 如果满血，就显示颜色，并且显示移动轨迹，为灰色
-            if not self.agent1.is_blood():
+            if not self.agent1.is_hidden():
                 delta_x, delta_y = self.agent1.move_forward_delta()
                 a[self.agent1.y + 1 + delta_y, self.agent1.x + 1 + delta_x, i] = 0.5
-            if not self.agent2.is_blood():
+            if not self.agent2.is_hidden():
                 delta_x, delta_y = self.agent2.move_forward_delta()
                 a[self.agent2.y + 1 + delta_y, self.agent2.x + 1 + delta_x, i] = 0.5
-            if not self.agent1.is_blood():
+            if not self.agent1.is_hidden():
                 a[self.agent1.y + 1, self.agent1.x + 1, i] = 1 if i == self.agent1.type else 0
-            if not self.agent2.is_blood():
+            if not self.agent2.is_hidden():
                 a[self.agent2.y + 1, self.agent2.x + 1, i] = 1 if i == self.agent2.type else 0
 
         return a
