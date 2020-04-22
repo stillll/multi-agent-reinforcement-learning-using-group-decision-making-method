@@ -236,15 +236,23 @@ class Maze(tk.Tk, object):
             if action[i] == 0:   # up
                 if self.canvas.coords(self.rect_list[i])[1] > self.unit:
                     base_action[1] -= self.unit
+                else:
+                    base_action[1] += self.unit*(self.maze_h-1)
             elif action[i] == 1:   # down
                 if self.canvas.coords(self.rect_list[i])[1] < (self.maze_h - 1) * self.unit:
                     base_action[1] += self.unit
+                else:
+                    base_action[1] -= self.unit*(self.maze_h-1)
             elif action[i] == 2:   # right
                 if self.canvas.coords(self.rect_list[i])[0] < (self.maze_w - 1) * self.unit:
                     base_action[0] += self.unit
+                else:
+                    base_action[0] -= self.unit*(self.maze_w-1)
             elif action[i] == 3:   # left
                 if self.canvas.coords(self.rect_list[i])[0] > self.unit:
                     base_action[0] -= self.unit
+                else:
+                    base_action[0] += self.unit*(self.maze_w-1)
             self.canvas.move(self.rect_list[i], base_action[0], base_action[1])  # move agent
             next_coords.append([(self.canvas.coords(self.rect_list[i])[0]+self.canvas.coords(self.rect_list[i])[2])/2 + self.unit/2
                 ,(self.canvas.coords(self.rect_list[i])[1]+self.canvas.coords(self.rect_list[i])[3])/2 + self.unit/2])  # next state
@@ -270,6 +278,16 @@ class Maze(tk.Tk, object):
         for i in range(self.n_agents):
             for j in range(self.n_agents):
                 if i < j and next_coords[i][0]==next_coords[j][0] and abs(next_coords[i][1] - next_coords[j][1]) == self.unit:
+                    reward = reward + 1
+                if i < j and next_coords[i][0]==next_coords[j][0] and next_coords[i][1] < self.unit and next_coords[j][1] > self.unit*(self.maze_h-1):
+                    reward = reward + 1
+                if i < j and next_coords[i][0]==next_coords[j][0] and next_coords[j][1] < self.unit and next_coords[i][1] > self.unit*(self.maze_h-1):
+                    reward = reward + 1
+                if i < j and next_coords[i][1]==next_coords[j][1] and abs(next_coords[i][0] - next_coords[j][0]) == self.unit:
+                    reward = reward + 1
+                if i < j and next_coords[i][1]==next_coords[j][1] and next_coords[i][0] < self.unit and next_coords[j][0] > self.unit*(self.maze_w-1):
+                    reward = reward + 1
+                if i < j and next_coords[i][1]==next_coords[j][1] and next_coords[j][0] < self.unit and next_coords[i][0] > self.unit*(self.maze_w-1):
                     reward = reward + 1
 
         '''#print(next_coords[0],next_coords2[0],next_coords3[0],(MAZE_H - 1) * UNIT,UNIT)
