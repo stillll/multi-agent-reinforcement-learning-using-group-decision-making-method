@@ -1,11 +1,12 @@
 import numpy as np
 import sys
+from MAS_Catch import GameEnv
+import matplotlib.pyplot as plt
+# from MAS_Gathering import GameEnv
 if sys.version_info.major == 2:
     import Tkinter as tk
 else:
     import tkinter as tk
-from MAS_Gathering import GameEnv
-import matplotlib.pyplot as plt
 
 
 class Coop(tk.Tk):
@@ -15,36 +16,44 @@ class Coop(tk.Tk):
         self.num_agent = args.num_agent
         self.num_goal = args.num_goal
         self.num_walls = args.num_walls
-        self.n_actions = 8
+        self.n_actions = 7
         self.env = self._build_env()
 
     def _build_env(self):
-        env = GameEnv()
-        # env.reset()
+        env = GameEnv(
+            width=self.map_size,
+            high=self.map_size,
+            agent_num=self.num_agent,
+            food_num=1,  # self.num_goal,
+            agent_blood=1,
+            food_blood=1
+        )
         return env
 
     def reset(self):
-        pos_1 = [self.env.agent1.x - self.env.food_objects[0].x, self.env.agent1.y - self.env.food_objects[0].y]
-        pos_2 = [self.env.agent2.x - self.env.food_objects[0].x, self.env.agent2.y - self.env.food_objects[0].y]
-        pos_agents = [pos_1, pos_2]  # shape: [[x1, y1], ... , [xn, yn]]
-        pos_agents = np.array(pos_agents)
-
+        self.env.reset()
+        pos_observation = []
+        for i in self.num_agent:
+            pos_observation.append([self.env.agent_objects[i].x - self.env.food_objects[0].x,
+                                   self.env.agent_objects[i].y - self.env.food_objects[0].y])
+        pos_observation = np.array(pos_observation)
         # return observation
-        return pos_agents.flatten()
+        return pos_observation.flatten()
 
     def step(self, action):
         action = np.array(action)
 
         # reward function
-        reward_1, reward_2, done = self.env.move(action[0], action[1])
-        reward = reward_1 + reward_2
+        reward_list, done = self.env.move(action)
+        reward = np.sum(reward_list)
 
-        pos_1 = [self.env.agent1.x - self.env.food_objects[0].x, self.env.agent1.y - self.env.food_objects[0].y]
-        pos_2 = [self.env.agent2.x - self.env.food_objects[0].x, self.env.agent2.y - self.env.food_objects[0].y]
-        pos_agents = [pos_1, pos_2]  # shape: [[x1, y1], ... , [xn, yn]]
-        pos_agents = np.array(pos_agents)
+        pos_observation = []
+        for i in self.num_agent:
+            pos_observation.append([self.env.agent_objects[i].x - self.env.food_objects[0].x,
+                                    self.env.agent_objects[i].y - self.env.food_objects[0].y])
+        pos_observation = np.array(pos_observation)
 
-        return pos_agents.flatten(), reward, done
+        return pos_observation.flatten(), reward, done
 
     def render(self):
         temp = self.env.render_env()

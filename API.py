@@ -1,6 +1,6 @@
 import argparse
 from maze_env2 import Maze
-#from coop_env import Coop
+from coop_env import Coop
 from Model import MAGDMRL
 import tensorflow as tf
 from test import test_model
@@ -51,10 +51,10 @@ def parse_args():
 
 
 def make_env(arglist):
-    #if arglist.MAgent:
-        #env = Coop(arglist)
-    #else:
-    env = Maze(n_agents=arglist.num_agent)
+    if arglist.MAgent:
+        env = Coop(arglist)
+    else:
+        env = Maze(n_agents=arglist.num_agent)
     return env
 
 
