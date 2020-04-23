@@ -28,27 +28,29 @@ class Coop(tk.Tk):
             agent_blood=1,
             food_blood=1
         )
+        #env.reset()
         return env
 
     def reset(self):
         self.env.reset()
         pos_observation = []
-        for i in self.num_agent:
+        # print(self.env.agent_objects)
+        # print(self.env.food_objects)
+        for i in range(self.num_agent):
             pos_observation.append([self.env.agent_objects[i].x - self.env.food_objects[0].x,
-                                   self.env.agent_objects[i].y - self.env.food_objects[0].y])
+                                    self.env.agent_objects[i].y - self.env.food_objects[0].y])
         pos_observation = np.array(pos_observation)
         # return observation
         return pos_observation.flatten()
 
     def step(self, action):
         action = np.array(action)
-
         # reward function
         reward_list, done = self.env.move(action)
         reward = np.sum(reward_list)
 
         pos_observation = []
-        for i in self.num_agent:
+        for i in range(self.num_agent):
             pos_observation.append([self.env.agent_objects[i].x - self.env.food_objects[0].x,
                                     self.env.agent_objects[i].y - self.env.food_objects[0].y])
         pos_observation = np.array(pos_observation)

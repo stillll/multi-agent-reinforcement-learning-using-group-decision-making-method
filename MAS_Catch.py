@@ -4,7 +4,6 @@
 
 import numpy as np
 import scipy.misc
-import random
 
 
 class AgentObj:
@@ -173,7 +172,7 @@ class GameEnv:
                                                type=2,
                                                name=i,
                                                blood=1,
-                                               speed=2,
+                                               speed=1,
                                                mark=0,
                                                direction=np.random.randint(4)
                                                )
@@ -188,11 +187,11 @@ class GameEnv:
                                       )
         self.food_objects = []
         for j in range(self.food_num):
-            self.agent_objects.append(FoodObj(coordinates
+            self.food_objects.append(FoodObj(coordinates
                                               =(np.random.randint(self.size_x-1), np.random.randint(self.size_y-1)),
                                               blood=1,
                                               type=1,
-                                              reward=1,
+                                              reward=10,
                                               speed=1
                                               )
                                       )
@@ -208,22 +207,24 @@ class GameEnv:
 
         for agent in self.agent_objects:
             if agent.is_alive():
-                self.agent_actions[agent.id][agent_action_list[agent.id]](env_x_size=self.size_x, env_y_size=self.size_y)
+                self.agent_actions[agent.name][agent_action_list[agent.name]](env_x_size=self.size_x, env_y_size=self.size_y)
 
         reward_list = []
         food_blood = []
+        done = True
         for food in self.food_objects:
             if food.is_alive():
+                done = False
                 for agent in self.agent_objects:
                     if agent.is_alive() and food.x == agent.x and food.y == agent.y:
                         reward_list.append(food.eat())
-                        food_blood.append(food.the_blood())
+                        food_blood.append(food.blood)
 
-        food_blood = np.array(food_blood)
-        if np.all(food_blood == 0):
-            done = True
-        else:
-            done = False
+        # food_blood = np.array(food_blood)
+        # if food_blood and np.all(food_blood == 0):
+        #     done = True
+        # else:
+        #     done = False
 
         return np.array(reward_list), done
 
@@ -241,8 +242,8 @@ class GameEnv:
             for agent in self.agent_objects:
                 if agent.is_alive():
                     a[agent.y + 1, agent.x + 1, i] = 1 if i == agent.type else 0
-                    delta_x, delta_y = agent.move_forward_delta()
-                    a[agent.y + 1 + delta_y, agent.x + 1 + delta_x, i] = 0.5
+                    # delta_x, delta_y = agent.move_forward_delta()
+                    # a[agent.y + 1 + delta_y, agent.x + 1 + delta_x, i] = 0.5
 
         return a
 
