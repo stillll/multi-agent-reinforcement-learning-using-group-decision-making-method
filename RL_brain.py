@@ -148,7 +148,6 @@ class DeepQNetwork:
 
         self.memory_counter += 1
 
-
     def value_func(self, observation):
         observation = observation[np.newaxis, :]
         v = self.sess.run(self.q_eval, feed_dict={self.s: observation})

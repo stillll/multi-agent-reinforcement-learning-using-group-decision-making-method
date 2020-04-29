@@ -56,9 +56,9 @@ class MAGDMRL(DeepQNetwork, GroupDM):
         self.all_cl = []  # all agents' cl
         self.all_sugg = [0.25 for i in range(self.n_agents*self.n_actions)]  # all agents' final suggestions
 
-
         self.sum_1 = 0
         self.sum_2 = 0
+
     # new space for gdm operation in one step
     def new_gdm_space(self):
         self.all_agents_prms = [[] for i in range(self.n_agents)]
@@ -146,10 +146,13 @@ class MAGDMRL(DeepQNetwork, GroupDM):
 
     # input state, output join actions in one step
     def run_model(self, env_s):
+        # gdm
         cll = 0  # CLL
         discuss_cnt = 0
+        #
         env_s = np.append(env_s, [0.25]*self.n_agents*self.n_actions)
         self.all_coop_sets_l = self.all_coop_sets
+        # bug : gdm=false discuss=true error
         while cll < self.cll_ba and discuss_cnt < self.max_discuss*3:
             self.new_space()
             join_act = []
@@ -157,7 +160,7 @@ class MAGDMRL(DeepQNetwork, GroupDM):
             if self.use_gdm is True:
                 self.new_gdm_space()
                 self.all_sugg = []
-            # agents produce and store their prms
+            #agents produce and store their prms
             for i in range(self.n_agents):
                 coop_set, coop_state_i, soft_max_q, v_set, av_v = self.coop_set_and_coop_state(i, env_s)
                 self.all_coop_sets.append(coop_set)
@@ -256,8 +259,48 @@ class MAGDMRL(DeepQNetwork, GroupDM):
                 action = np.random.randint(0, self.n_actions)
         return action
 
-
     # store experiences
+    def store_n_transitions(self, last_obv, last_join_act, last_sugg_act, reward, w_r):
+        if self.use_gdm or self.discuss:
+            l_r = reward * w_r
+            # print("l_r:", l_r)
+        '''aaa = False
+        if reward > 4:
+            aaa = True
+            for jjj in range(self.n_agents):
+                if self.store_n_obv[jjj][0] == 0 and self.store_n_obv[jjj][1] == 0:
+                    aaa = False
+        for jjj in range(self.n_agents):
+            if self.store_n_obv[jjj][0] == 0 and self.store_n_obv[jjj][1] == 0:
+                if reward < 4:
+                    aaa = True
+        if aaa:
+                pdb.set_trace()'''
+        for i in range(self.n_agents):
+            if self.discuss is True:
+                last_sugg_coop_act = last_sugg_act[i * self.max_coop:(i + 1) * self.max_coop]
+                self.store_transition(last_obv[i], last_sugg_coop_act, l_r[i], self.store_n_obv[i])
+            else:
+                last_coop_act = np.array(last_join_act)[self.all_coop_sets_l[i]]
+                last_coop_act = np.append(last_coop_act, [-1] * (self.max_coop - len(last_coop_act)))
+                if self.use_gdm is True:
+                    if True:  # self.step_test(last_obv[i], last_coop_act, self.store_n_obv[i]):
+                        l_r = reward * w_r
+                        self.store_transition(last_obv[i], last_coop_act, l_r[i], self.store_n_obv[i])
+                else:
+                    print("-----------------------------------")
+                    print(last_obv[i])
+                    print(last_coop_act)
+                    print(reward)
+                    print(self.n_obv[i])
+                    self.store_transition(last_obv[i], last_coop_act, reward, self.n_obv[i])
+                    if True:  # self.step_test(last_obv[i], last_coop_act, self.store_n_obv[i]):
+                        self.store_transition(last_obv[i], last_coop_act, reward, self.store_n_obv[i])
+                        if i == 0:
+                            self.sum_1 = self.sum_1 + 1
+                        elif i == 1:
+                            self.sum_2 = self.sum_2 + 1
+
     #----test before store----#
     # if this_obv can got by last_obv and last_coop_act, return true, else return false.
     def step_test(self, last_obv, last_coop_act, this_obv):
@@ -323,50 +366,6 @@ class MAGDMRL(DeepQNetwork, GroupDM):
             pdb.set_trace()
         return ans
 
-
-    def store_n_transitions(self, last_obv, last_join_act, last_sugg_act, reward, w_r):
-        if self.use_gdm or self.discuss:
-            l_r = reward * w_r
-            #print("l_r:", l_r)
-        '''aaa = False
-        if reward > 4:
-            aaa = True
-            for jjj in range(self.n_agents):
-                if self.store_n_obv[jjj][0] == 0 and self.store_n_obv[jjj][1] == 0:
-                    aaa = False
-        for jjj in range(self.n_agents):
-            if self.store_n_obv[jjj][0] == 0 and self.store_n_obv[jjj][1] == 0:
-                if reward < 4:
-                    aaa = True
-        if aaa:
-                pdb.set_trace()'''
-        for i in range(self.n_agents):
-            if self.discuss is True:
-                last_sugg_coop_act = last_sugg_act[i * self.max_coop:(i + 1) * self.max_coop]
-                self.store_transition(last_obv[i], last_sugg_coop_act, l_r[i], self.store_n_obv[i])
-            else:
-                last_coop_act = np.array(last_join_act)[self.all_coop_sets_l[i]]
-                last_coop_act = np.append(last_coop_act, [-1] * (self.max_coop - len(last_coop_act)))
-                if self.use_gdm is True:
-                    if True:#self.step_test(last_obv[i], last_coop_act, self.store_n_obv[i]):
-                        l_r = reward * w_r
-                        self.store_transition(last_obv[i], last_coop_act, l_r[i], self.store_n_obv[i])
-                else:
-                    print("-----------------------------------")
-                    print(last_obv[i])
-                    print(last_coop_act)
-                    print(reward)
-                    print(self.n_obv[i])
-                    self.store_transition(last_obv[i], last_coop_act, reward, self.n_obv[i])
-                    if True:#self.step_test(last_obv[i], last_coop_act, self.store_n_obv[i]):
-                        self.store_transition(last_obv[i], last_coop_act, reward, self.store_n_obv[i])
-                        if i == 0:
-                            self.sum_1 = self.sum_1 + 1
-                        elif i == 1:
-                            self.sum_2 = self.sum_2 + 1
-                        
-
-
-
 # TODO: 存入经验池等功能应当与模型分开，以便在train中进行各种操作。
+
 

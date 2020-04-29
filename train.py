@@ -3,6 +3,7 @@ import os
 import pdb
 import numpy as np
 
+
 def train_model(env, model, save_path, max_episode):
     step = 0
     cumulate_reward = 0
@@ -34,6 +35,8 @@ def train_model(env, model, save_path, max_episode):
         counter = 0  # if end episode
         #cumulate_reward = 0
         join_act, w_r, sugg_act = model.run_model(env_s)  # 第一步
+        # 1、DQN（x,y,z,...）
+        # 2、GDM（a,b,c,...）
         while True:  # one step
             # learn
             step += 1
@@ -53,6 +56,10 @@ def train_model(env, model, save_path, max_episode):
             last_sugg_act = sugg_act
             obv = model.n_obv  # 上一步的观察
             join_act, w_r, sugg_act = model.run_model(env_s)  # 当前步
+            # for agents
+            #   coop set; -- son of dqn
+            #   DQN; -- once
+            #   GDM; -- son of coop set
             #print("now",join_act)
             model.store_n_transitions(obv, last_join_act, last_sugg_act, reward, w_r_)  # 上一步到当前步的转移经验
             if counter > 300 or done:

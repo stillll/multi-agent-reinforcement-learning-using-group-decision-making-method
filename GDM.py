@@ -67,3 +67,4 @@ class GroupDM:
                     c_l += abs(prm[i, j]-a_prm[i, j])/(self.n_actions*(self.n_actions-1))
         return 1 - c_l
 
+
