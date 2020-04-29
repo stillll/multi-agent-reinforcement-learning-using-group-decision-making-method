@@ -25,7 +25,7 @@ import pdb
 
 class Maze(tk.Tk, object):
     def __init__(self,
-                 n_agents=4,
+                 n_agents=3,
                  max_coop=2,
                  unit = 80,
                  maze_h = 1,

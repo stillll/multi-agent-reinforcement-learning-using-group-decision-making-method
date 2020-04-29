@@ -2,9 +2,11 @@ import argparse
 from maze_env2 import Maze
 #from coop_env import Coop
 from Model import MAGDMRL
+from FindCoopSet import CoopSet
+from GDM2 import GDM
 import tensorflow as tf
 from test import test_model
-from train import train_model
+from train2 import train_model
 
 
 def parse_args():
@@ -69,35 +71,42 @@ def make_env(arglist):
 
 
 def set_model(arglist):
-    model = MAGDMRL(n_agents=arglist.num_agent,
-                    n_actions=arglist.act_space,
-                    max_coop=arglist.max_coop,
-                    n_features=arglist.n_features,  # feature length for single agent
-                    cll_ba=arglist.cll_ba,
-                    max_discuss=arglist.max_discuss,
-                    learning_rate=arglist.lr,
-                    reward_decay=arglist.gamma,
-                    e_greedy=arglist.e_greedy,
-                    replace_target_iter=arglist.replace_target_iter,
-                    memory_size=arglist.memory_size,
-                    batch_size=arglist.batch_size,
-                    e_greedy_increment=arglist.e_greedy_add,
-                    output_graph=arglist.output_graph,
-                    use_gdm=arglist.gdm,
-                    sess=None)
-    return model
+    cs = CoopSet(
+        n_agents=arglist.num_agent,
+        n_actions=arglist.act_space,
+        max_coop=arglist.max_coop,
+        n_features=arglist.n_features,  # feature length for single agent
+        learning_rate=arglist.lr,
+        reward_decay=arglist.gamma,
+        e_greedy=arglist.e_greedy,
+        replace_target_iter=arglist.replace_target_iter,
+        memory_size=arglist.memory_size,
+        batch_size=arglist.batch_size,
+        e_greedy_increment=arglist.e_greedy_add,
+        output_graph=arglist.output_graph,
+        sess=None
+    )
+    # gdm = GDM(
+    #     n_actions=arglist.act_space,
+    #     n_agents=arglist.num_agent,
+    #     n_features=arglist.n_features,
+    #     max_coop=arglist.max_coop,
+    #     cll_ba=arglist.cll_ba,
+    #     max_discuss=arglist.max_discuss
+    # )
+    return cs
 
 
 def train_or_test(arglist):
     env = make_env(arglist)
-    model = set_model(arglist)
+    gdm = set_model(arglist)
 
     if arglist.model_exist:
         saver = tf.train.Saver()
-        saver.restore(model.sess, tf.train.latest_checkpoint(arglist.save_path))
-        test_model(env, model, max_episode=100)
+        saver.restore(gdm.sess, tf.train.latest_checkpoint(arglist.save_path))
+        #test_model(env, model, max_episode=100)
     else:
-        train_model(env, model, arglist.save_path + arglist.model_name, max_episode=arglist.max_episode)
+        train_model(env, gdm, arglist.save_path + arglist.model_name, max_episode=arglist.max_episode)
 
 
 if __name__ == '__main__':
