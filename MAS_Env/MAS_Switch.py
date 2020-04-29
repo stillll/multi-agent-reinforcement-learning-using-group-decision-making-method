@@ -322,10 +322,10 @@ class GameEnv:
                         elif agent.type == 0 and food.type == 3:
                             reward = food.eat()
                             self.food_objects[food.name - int(self.food_num / 2)].add_blood()
-                        elif agent.type == 2 and food.type == 3:
-                            reward = -0.1
-                        elif agent.type == 0 and food.type == 1:
-                            reward = -0.1
+                        # elif agent.type == 2 and food.type == 3:
+                        #     reward = -0.1
+                        # elif agent.type == 0 and food.type == 1:
+                        #     reward = -0.1
             reward_list.append(reward)
             food_blood.append(food.blood)
 
