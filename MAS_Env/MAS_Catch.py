@@ -20,9 +20,6 @@ class AgentObj:
         self.direction = direction
         self.mark = mark
 
-    def id(self):
-        return self.name
-
     def is_alive(self):
         return self.blood > 0
 
@@ -131,6 +128,7 @@ class FoodObj:
         self.type = type
         self.blood = blood
         self.reward = reward
+        self.speed = speed
 
     def is_alive(self):
         return self.blood > 0
@@ -142,6 +140,19 @@ class FoodObj:
 
     def the_blood(self):
         return self.blood
+
+    def moving(self, env_x_size, env_y_size):
+        act = [-self.speed, self.speed]
+        x_or_y = [0, 1]
+        _ = np.random.choice(x_or_y)
+        delta = np.random.choice(act)
+        if _:
+            self.x = self.x + delta if 0 <= self.x + delta < env_x_size else self.x
+            self.y = self.y
+        else:
+            self.x = self.x
+            self.y = self.y + delta if 0 <= self.y + delta < env_y_size else self.y
+        return self.x, self.y
 
 
 class GameEnv:
@@ -189,11 +200,11 @@ class GameEnv:
         for j in range(self.food_num):
             self.food_objects.append(FoodObj(coordinates
                                               =(np.random.randint(self.size_x-1), np.random.randint(self.size_y-1)),
-                                              blood=1,
-                                              type=1,
-                                              reward=10,
-                                              speed=1
-                                              )
+                                             type=1,
+                                             blood=1,
+                                             reward=10,
+                                             speed=1
+                                             )
                                       )
     # 输入动作对应代码，输出奖励
 
@@ -208,6 +219,10 @@ class GameEnv:
         for agent in self.agent_objects:
             if agent.is_alive():
                 self.agent_actions[agent.name][agent_action_list[agent.name]](env_x_size=self.size_x, env_y_size=self.size_y)
+
+        for food in self.food_objects:
+            if food.is_alive():
+                food.moving(env_x_size=self.size_x, env_y_size=self.size_y)
 
         reward_list = []
         food_blood = []
