@@ -25,11 +25,11 @@ else:
 
 class Maze(tk.Tk, object):
     def __init__(self,
-                 n_agents=4,
+                 n_agents=3,
                  max_coop=2,
                  unit = 8,
-                 maze_h = 50,
-                 maze_w = 80,
+                 maze_h = 30,
+                 maze_w = 30,
                  rect_size = 6,
                  rect_pos = []
                  ):
