@@ -20,17 +20,17 @@ if sys.version_info.major == 2:
 else:
     import tkinter as tk
 
-
+import pdb
 
 
 class Maze(tk.Tk, object):
     def __init__(self,
                  n_agents=4,
                  max_coop=2,
-                 unit = 8,
-                 maze_h = 50,
-                 maze_w = 80,
-                 rect_size = 6,
+                 unit = 80,
+                 maze_h = 1,
+                 maze_w = 3,
+                 rect_size = 60,
                  rect_pos = []
                  ):
         super(Maze, self).__init__()
@@ -231,6 +231,7 @@ class Maze(tk.Tk, object):
             self.canvas.move(self.oval, base_act[0], base_act[1])
         """
         next_coords = []
+
         for i in range(self.n_agents):
             base_action = np.array([0, 0])
             if action[i] == 0:   # up
@@ -272,6 +273,7 @@ class Maze(tk.Tk, object):
         else:
             reward = 0
             done = False'''
+        '''
         reward = 0
         done = False
         #pdb.set_trace()
@@ -289,6 +291,18 @@ class Maze(tk.Tk, object):
                     reward = reward + 1
                 if i < j and next_coords[i][1]==next_coords[j][1] and next_coords[j][0] < self.unit and next_coords[i][0] > self.unit*(self.maze_w-1):
                     reward = reward + 1
+        '''
+
+
+        reward = 4
+        done = True
+        #pdb.set_trace()
+        for i in range(self.n_agents):
+            for j in range(self.n_agents):
+                if next_coords[i][0]!=next_coords[j][0] or next_coords[i][1]!=next_coords[j][1]:
+                    reward = -1
+                    done = False
+
 
         '''#print(next_coords[0],next_coords2[0],next_coords3[0],(MAZE_H - 1) * UNIT,UNIT)
         if next_coords[0] > (MAZE_H - 1) * UNIT or next_coords2[0] > (MAZE_H - 1) * UNIT:
