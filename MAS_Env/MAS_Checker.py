@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 # encoding=utf-8
 
-
 import numpy as np
 import scipy.misc
 
 
 class AgentObj:
-    def __init__(self, coordinates, type, name, direction=0, mark=0, hidden=1):
+    def __init__(self, coordinates, type, name, direction=0, mark=0, hidden=0):
         self.x = coordinates[0]
         self.y = coordinates[1]
-        # 0: r, 1: g, 3: b
+        #0: r, 1: g, 3: b
         self.type = type
         self.name = name
         self.hidden = hidden
@@ -20,19 +19,18 @@ class AgentObj:
         self.mark = mark
 
     def is_hidden(self):
-        return self.hidden < 0
+        return self.hidden > 0
 
     def add_mark(self, agent_hidden):
-        pass
-        # self.mark += 1
-        # if self.mark >= 2:
-        #     self.mark = 0
-        #     self.hidden = agent_hidden
-        # return self.mark
+        self.mark += 1
+        if self.mark >= 2:
+            self.mark = 0
+            self.hidden = agent_hidden
+        return self.mark
 
     def sub_hidden(self):
-        # self.hidden -= 1
-        self.hidden = 0 if self.hidden <= 0 else self.hidden
+        self.hidden -= 1
+        self.hidden = 0 if self.hidden <=0 else self.hidden
         return self.hidden
 
     def turn_left(self, **kwargs):
@@ -119,35 +117,26 @@ class AgentObj:
 
 
 class FoodObj:
-    def __init__(self, coordinates, type=1, hidden=1, reward=1):
+    def __init__(self, coordinates, type=1, agent1_reward=1, agent2_reward=2):
+        ## type: 1 is apple, 3 is lemon
         self.x = coordinates[0]
         self.y = coordinates[1]
         self.type = type
-        self.hidden = hidden
-        self.reward = reward
+        self.agent1_reward = agent1_reward
+        self.agent2_reward = agent2_reward
 
-    # def is_hidden(self):
-        # return self.hidden > 0
-    def is_hidden(self):
-        return self.hidden <= 0
-
-    def eat(self, food_hidden):
-        # self.hidden = food_hidden
-        return self.reward
-
-    def sub_hidden(self):
-        self.hidden -= 1
-        self.hidden = 0 if self.hidden <= 0 else self.hidden
-        return self.hidden
+    def eat(self, agent, food_list):
+        food_list.remove(self)
+        return self.agent1_reward if agent.type == 2 else self.agent2_reward
 
 
 class GameEnv:
-    def __init__(self, width=31, high=11, agent_hidden=5, food_hidden=4):
-        self.size_x = width
-        self.size_y = high
+    def __init__(self, widht=18, hight=3):
+        self.size_x = widht
+        self.size_y = hight
         self.objects = []
-        self.agent_hidden = agent_hidden
-        self.food_hidden = food_hidden
+        self.agent1_beam_set = []
+        self.agent2_beam_set = []
 
         # 0: forward, 1: backward, 2: left, 3: right
         # 4: trun lelf, 5:turn right, 6: beam, 7: stay
@@ -155,10 +144,9 @@ class GameEnv:
 
         self.reset()
 
-    # 初始化agent位置和food位置，都是固定的
     def reset(self):
-        self.agent1 = AgentObj(coordinates=(0, 5), type=2, name='agent1')
-        self.agent2 = AgentObj(coordinates=(30, 5), type=0, name='agent2', direction=2)
+        self.agent1 = AgentObj(coordinates=(16, 0), type=2, name='agent1', direction=2)
+        self.agent2 = AgentObj(coordinates=(16, 2), type=0, name='agent2', direction=2)
         self.agent1_actions = [self.agent1.move_forward, self.agent1.move_backward, self.agent1.move_left, self.agent1.move_right,
                                self.agent1.turn_left, self.agent1.turn_right, self.agent1.beam, self.agent1.stay]
         self.agent2_actions = [self.agent2.move_forward, self.agent2.move_backward, self.agent2.move_left, self.agent2.move_right,
@@ -168,14 +156,19 @@ class GameEnv:
 
         self.food_objects = []
 
-        # for x in range(13, 18):
-        #     delta = x - 13 if x -13 < 17 - x else 17 -x
-        #     self.food_objects.append(FoodObj(coordinates=(x, 5)))
-        #     for i in range(delta):
-        #         self.food_objects.append(FoodObj(coordinates=(x, 4 - i)))
-        #         self.food_objects.append(FoodObj(coordinates=(x, 6 + i)))
-        self.food_objects.append(FoodObj(coordinates=(5, 5)))
-    # 输入动作对应代码，输出奖励
+        for y in range(0, 3):
+            is_apple = (y + 1) % 2
+            for x in range(0, 16):
+                food_type = 1 if is_apple else 3
+                agent1_reward = 10 if is_apple else -10
+                agent2_reward = 1 if is_apple else -1
+                self.food_objects.append(FoodObj((x, y), type=food_type, agent1_reward=agent1_reward,
+                                                 agent2_reward=agent2_reward))
+                is_apple = not is_apple
+
+    def is_done(self):
+        return not self.food_objects
+
     def move(self, agent1_action, agent2_action):
         assert agent1_action in range(8), 'agent1 take wrong action'
         assert agent2_action in range(8), 'agent2 take wrong action'
@@ -186,57 +179,47 @@ class GameEnv:
         self.agent1.sub_hidden()
         self.agent2.sub_hidden()
 
-        self.agent1_beam_set = []
-        self.agent2_beam_set = []
-        if not self.agent1.is_hidden():
-            agent1_action_return = self.agent1_actions[agent1_action](env_x_size=self.size_x, env_y_size=self.size_y)
-            self.agent1_beam_set = [] if agent1_action != 6 else agent1_action_return
-        if not self.agent2.is_hidden():
-            agent2_action_return = self.agent2_actions[agent2_action](env_x_size=self.size_x, env_y_size=self.size_y)
-            self.agent2_beam_set = [] if agent2_action != 6 else agent2_action_return
+        agent1_action_return = self.agent1_actions[agent1_action](env_x_size=self.size_x, env_y_size=self.size_y)
+        self.agent1_beam_set = [] if agent1_action != 6 else agent1_action_return
 
-        if not self.agent1.is_hidden() and not self.agent2.is_hidden() and\
-                ((self.agent1.x == self.agent2.x and self.agent1.y == self.agent2.y) or
-                     (self.agent1.x == agent2_old_x and self.agent1.y == agent2_old_y and
-                              self.agent2.x == agent1_old_x and self.agent2.y == agent1_old_y)):
+        agent2_action_return = self.agent2_actions[agent2_action](env_x_size=self.size_x, env_y_size=self.size_y)
+        self.agent2_beam_set = [] if agent2_action != 6 else agent2_action_return
 
+        if self.agent1.x == self.agent2.x and self.agent1.y == self.agent2.y:
             self.agent1.x, self.agent1.y = agent1_old_x, agent1_old_y
             self.agent2.x, self.agent2.y = agent2_old_x, agent2_old_y
 
         agent1_reward = 0
         agent2_reward = 0
-        food_hidden = []
         for food in self.food_objects:
-            # food.sub_hidden()
-            if not food.is_hidden():
-                if not self.agent1.is_hidden() and food.x == self.agent1.x and food.y == self.agent1.y:
-                    agent1_reward = food.eat(self.food_hidden)
-                    food.sub_hidden()
-                    food_hidden.append(food.sub_hidden())
-                elif not self.agent2.is_hidden() and food.x == self.agent2.x and food.y == self.agent2.y:
-                    agent2_reward = food.eat(self.food_hidden)
-                    food.sub_hidden()
-                    food_hidden.append(food.sub_hidden())
+            if food.x == self.agent1.x and food.y == self.agent1.y:
+                agent1_reward = food.eat(agent=self.agent1, food_list=self.food_objects)
+            elif food.x == self.agent2.x and food.y == self.agent2.y:
+                agent2_reward = food.eat(agent=self.agent2, food_list=self.food_objects)
 
-        food_hidden = np.array(food_hidden)
-        if np.all(food_hidden == 0):
-            done = True
-        else:
-            done = False
+        return agent1_reward, agent2_reward
 
-        if (self.agent1.x, self.agent1.y) in self.agent2_beam_set:
-            self.agent1.add_mark(self.agent_hidden)
-        if (self.agent2.x, self.agent2.y) in self.agent1_beam_set:
-            self.agent2.add_mark(self.agent_hidden)
-
-        return agent1_reward, agent2_reward, done
-
-    # 设置背景颜色；激光轨迹颜色；food颜色；agent及agent移动轨迹的颜色
     def contribute_metrix(self):
-        a = np.ones([self.size_y + 2, self.size_x + 2, 3])  # a是RGB三层，并且给地图加宽一圈
-        a[1:-1, 1:-1, :] = 0  # 将加的一圈之内的原本的地图值设为0，也就是设背景为黑色
+        a = np.ones([self.size_y + 2, self.size_x + 2, 3])
+        a[:, 0, 0] = 136 / 255
+        a[:, 0, 1] = 138 / 255
+        a[:, 0, 2] = 135 / 255
 
-        for x, y in self.agent1_beam_set:  # 将激光照射的地方显示为灰色，及0.5，0.5，0.5
+        a[:, self.size_x + 1, 0] = 136 / 255
+        a[:, self.size_x + 1, 1] = 138 / 255
+        a[:, self.size_x + 1, 2] = 135 / 255
+
+        a[0, :, 0] = 136 / 255
+        a[0, :, 1] = 138 / 255
+        a[0, :, 2] = 135 / 255
+
+        a[self.size_y + 1, :, 0] = 136 / 255
+        a[self.size_y + 1, :, 1] = 138 / 255
+        a[self.size_y + 1, :, 2] = 135 / 255
+
+        a[1:-1, 1:-1, :] = 0
+
+        for x, y in self.agent1_beam_set:
             a[y + 1, x + 1, 0] = 0.5
             a[y + 1, x + 1, 1] = 0.5
             a[y + 1, x + 1, 2] = 0.5
@@ -246,39 +229,41 @@ class GameEnv:
             a[y + 1, x + 1, 2] = 0.5
 
         for food in self.food_objects:
-            if not food.is_hidden():  # 如果food满血，那就显示出颜色，按照他的类型显示
-                for i in range(3):
-                    a[food.y + 1, food.x + 1, i] = 1 if i == food.type else 0
+            if food.type == 1: # apple
+                a[food.y + 1, food.x + 1, 0] = 177 / 255
+                a[food.y + 1, food.x + 1, 1] = 245 / 255
+                a[food.y + 1, food.x + 1, 2] = 90 / 255
+            elif food.type == 3:
+                a[food.y + 1, food.x + 1, 0] = 213 / 255
+                a[food.y + 1, food.x + 1, 1] = 144 / 255
+                a[food.y + 1, food.x + 1, 2] = 62 / 255
 
-        for i in range(3):  # 如果满血，就显示颜色，并且显示移动轨迹，为灰色
+        for i in range(3):
             if not self.agent1.is_hidden():
                 delta_x, delta_y = self.agent1.move_forward_delta()
-                a[self.agent1.y + 1 + delta_y, self.agent1.x + 1 + delta_x, i] = 0.5
+                a[self.agent1.y + 1 + delta_y, self.agent1.x + 1 + delta_x, i] = 40 / 255
             if not self.agent2.is_hidden():
                 delta_x, delta_y = self.agent2.move_forward_delta()
-                a[self.agent2.y + 1 + delta_y, self.agent2.x + 1 + delta_x, i] = 0.5
-            if not self.agent1.is_hidden():
-                a[self.agent1.y + 1, self.agent1.x + 1, i] = 1 if i == self.agent1.type else 0
-            if not self.agent2.is_hidden():
-                a[self.agent2.y + 1, self.agent2.x + 1, i] = 1 if i == self.agent2.type else 0
+                a[self.agent2.y + 1 + delta_y, self.agent2.x + 1 + delta_x, i] = 40 / 255
+
+            a[self.agent1.y + 1, self.agent1.x + 1, i] = 1 if i == self.agent1.type else 0
+            a[self.agent2.y + 1, self.agent2.x + 1, i] = 1 if i == self.agent2.type else 0
 
         return a
 
-    # 将图片放大，便于观看
     def render_env(self):
         a = self.contribute_metrix()
-        # 函数作用是调整大小scipy.misc.imresize(img,new_size，interp)即将img变为new_size大小，interp是放大采样方式
-        b = scipy.misc.imresize(a[:, :, 0], [5 * self.size_y, 5 * self.size_x, 1], interp='nearest')
-        c = scipy.misc.imresize(a[:, :, 1], [5 * self.size_y, 5 * self.size_x, 1], interp='nearest')
-        d = scipy.misc.imresize(a[:, :, 2], [5 * self.size_y, 5 * self.size_x, 1], interp='nearest')
+
+        b = scipy.misc.imresize(a[:, :, 0], [10 * self.size_y, 10 * self.size_x, 1], interp='nearest')
+        c = scipy.misc.imresize(a[:, :, 1], [10 * self.size_y, 10 * self.size_x, 1], interp='nearest')
+        d = scipy.misc.imresize(a[:, :, 2], [10 * self.size_y, 10 * self.size_x, 1], interp='nearest')
 
         a = np.stack([b, c, d], axis=2)
         return a
 
-    # 将图片还原，继续处理
     def train_render(self):
         a = self.contribute_metrix()
-        # 函数作用是调整大小scipy.misc.imresize(img,new_size，interp)即将img变为new_size大小，interp是放大采样方式
+
         b = scipy.misc.imresize(a[:, :, 0], [84, 84, 1], interp='nearest')
         c = scipy.misc.imresize(a[:, :, 1], [84, 84, 1], interp='nearest')
         d = scipy.misc.imresize(a[:, :, 2], [84, 84, 1], interp='nearest')
