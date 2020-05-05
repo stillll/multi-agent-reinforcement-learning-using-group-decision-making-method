@@ -27,10 +27,10 @@ class Maze(tk.Tk, object):
     def __init__(self,
                  n_agents=3,
                  max_coop=2,
-                 unit = 80,
-                 maze_h = 1,
-                 maze_w = 3,
-                 rect_size = 60,
+                 unit = 100,
+                 maze_h = 3,
+                 maze_w = 1,
+                 rect_size = 80,
                  rect_pos = []
                  ):
         super(Maze, self).__init__()

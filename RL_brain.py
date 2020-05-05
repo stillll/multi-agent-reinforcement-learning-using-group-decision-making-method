@@ -25,6 +25,7 @@ class DeepQNetwork:
             self,
             input_length,
             output_length,
+            output_shape,
             action_dim,
             action_space,
             learning_rate=0.01,
@@ -40,6 +41,7 @@ class DeepQNetwork:
     ):
         self.input_length = input_length
         self.output_length = output_length
+        self.output_shape = output_shape
         self.action_dim = action_dim
         self.action_space = action_space
         self.lr = learning_rate
@@ -57,33 +59,27 @@ class DeepQNetwork:
         # initialize zero memory [s, a, r, s_]
         self.memory = np.zeros((self.memory_size, self.input_length * 2 + 1 + self.action_dim))
 
-        # consist of [target_net, evaluate_net]
-        self._build_net()
-        t_params = tf.get_collection('target_net_params')
-        e_params = tf.get_collection('eval_net_params')
-        self.replace_target_op = [tf.assign(t, e) for t, e in zip(t_params, e_params)]
+        self.cost_his = []
+        self.reward_his = []
+        self.action_value_his = [[],[],[],[]]
+        self.memory_counter = 0
 
         if sess is None:
             self.sess = tf.Session()
         else:
             self.sess = sess
 
-        if output_graph:
+        self._build_net()
+        
+        #if output_graph:
             # $ tensorboard --logdir=logs
             # tf.train.SummaryWriter soon be deprecated, use following
-            tf.summary.FileWriter("logs/", self.sess.graph)
-
-        self.sess.run(tf.global_variables_initializer())
-
-        self.cost_his = []
-        self.reward_his = []
-        self.action_value_his = [[],[],[],[]]
-        self.memory_counter = 0
+            #tf.summary.FileWriter("logs/", self.sess.graph)
 
     def _build_net(self):
         # ------------------ build evaluate_net ------------------
-        self.s = tf.placeholder(tf.float32, [None, self.input_length], name='s')  # input
-        self.q_target = tf.placeholder(tf.float32, [None, self.output_length], name='Q_target')  # for calculating loss
+        self.s = tf.placeholder(tf.float32, [None, self.input_length], name='s')
+        self.q_target = tf.placeholder(tf.float32, [None]+self.output_shape, name='Q_target')  # for calculating loss
         with tf.variable_scope('eval_net'):
             # c_names(collections_names) are the collections to store variables
             c_names, n_l1, w_initializer, b_initializer = \
@@ -105,7 +101,7 @@ class DeepQNetwork:
             with tf.variable_scope('l2'):
                 w2 = tf.get_variable('w2', [n_l1, self.output_length], initializer=w_initializer, collections=c_names)
                 b2 = tf.get_variable('b2', [1, self.output_length], initializer=b_initializer, collections=c_names)
-                self.q_eval = tf.matmul(ladd, w2) + b2
+                self.q_eval = tf.reshape(tf.matmul(ladd, w2) + b2, [-1]+self.output_shape)
 
         with tf.variable_scope('loss'):
             self.loss = tf.reduce_mean(tf.squared_difference(self.q_target, self.q_eval))
@@ -133,7 +129,15 @@ class DeepQNetwork:
             with tf.variable_scope('l2'):
                 w2 = tf.get_variable('w2', [n_l1, self.output_length], initializer=w_initializer, collections=c_names)
                 b2 = tf.get_variable('b2', [1, self.output_length], initializer=b_initializer, collections=c_names)
-                self.q_next = tf.matmul(ladd, w2) + b2
+                self.q_next = tf.reshape(tf.matmul(ladd, w2) + b2, [-1]+self.output_shape)
+        
+        
+        # consist of [target_net, evaluate_net]
+        t_params = tf.get_collection('target_net_params')
+        e_params = tf.get_collection('eval_net_params')
+        self.replace_target_op = [tf.assign(t, e) for t, e in zip(t_params, e_params)]
+
+        self.sess.run(tf.global_variables_initializer())
 
     def store_transition(self, s, a, r, s_):
         if not hasattr(self, 'memory_counter'):
@@ -168,14 +172,13 @@ class DeepQNetwork:
         else:
             sample_index = np.random.choice(self.memory_counter, size=self.batch_size)
         batch_memory = self.memory[sample_index, :]
-
+    
         q_next, q_eval = self.sess.run(
             [self.q_next, self.q_eval],
             feed_dict={
                 self.s_: batch_memory[:, -self.input_length:],  # fixed params
                 self.s: batch_memory[:, :self.input_length],  # newest params
             })
-
         # change q_target w.r.t q_eval's action
         q_target = q_eval.copy()
 
@@ -193,7 +196,7 @@ class DeepQNetwork:
         m = np.zeros(shape=(self.batch_size, self.action_dim))  # batch_size,max_coop
         for i in range(self.batch_size):
             for j in range(self.action_dim):
-                m[i, j] = max(q_next[i, self.action_space*j:self.action_space*(j+1)])  # n_actions
+                m[i, j] = max(q_next[i, j])  # n_actions
         #print("m:",m.shape)
 
         for i in range(self.batch_size):  # batch_size
@@ -203,7 +206,7 @@ class DeepQNetwork:
                     break
                 real_coop_count = real_coop_count + 1
             for j in range(real_coop_count):  # actual_coop
-                q_target[i, self.action_space * j + eval_act_index[i, j]] = reward[i, j] + self.gamma * m[i, j]
+                q_target[i, j, eval_act_index[i, j]] = reward[i, j] + self.gamma * m[i, j]
         #print("q_target:", q_target.shape,q_target)
         #q_target[batch_index, eval_act_index] = reward + self.gamma * np.max(q_next, axis=1)
 

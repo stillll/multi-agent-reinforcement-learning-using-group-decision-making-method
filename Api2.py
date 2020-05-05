@@ -106,7 +106,7 @@ def train_or_test(arglist):
         saver.restore(gdm.sess, tf.train.latest_checkpoint(arglist.save_path))
         #test_model(env, model, max_episode=100)
     else:
-        train_model(env, gdm, arglist.save_path + arglist.model_name, max_episode=arglist.max_episode)
+        gdm.train_CoopSet(env, arglist.save_path + arglist.model_name, max_episode=arglist.max_episode)
 
 
 if __name__ == '__main__':
