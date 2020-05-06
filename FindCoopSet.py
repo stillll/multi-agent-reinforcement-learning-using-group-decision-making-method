@@ -295,7 +295,7 @@ class CoopSet(DeepQNetwork):
         for i in range(self.n_agents):
             last_coop_act = np.array(last_join_act+[-1])[last_SL[i]]
             self.store_transition(last_CSL[i], last_coop_act, reward, CSL[i])
-            action = self.choose_action(q_v[:self.n_actions])
+            
 
     def train(self, env, save_path, max_episode):
         step = 0
