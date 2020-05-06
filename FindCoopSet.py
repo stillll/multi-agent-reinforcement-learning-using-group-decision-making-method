@@ -2,9 +2,12 @@
 #   coop set; -- son of dqn
 #   DQN; -- once
 #   GDM; -- son of coop set
+import tensorflow as tf
+import os
 from RL_brain import DeepQNetwork
 import numpy as np
 import itertools as itr
+import store
 
 
 class CoopSet(DeepQNetwork):
@@ -21,9 +24,10 @@ class CoopSet(DeepQNetwork):
                  batch_size=32,
                  e_greedy_increment=None,
                  output_graph=False,
-                 sess=None):
+                 sess=None,
+                 input_length=0):
         DeepQNetwork.__init__(self,
-                              input_length=max_coop*n_features,
+                              input_length=input_length if input_length > 0 else max_coop*n_features,
                               output_length=max_coop * n_actions,
                               action_dim=max_coop,
                               action_space=n_actions,
@@ -124,5 +128,72 @@ class CoopSet(DeepQNetwork):
 
             action = self.choose_action(q_v[:self.n_actions])
             join_act.append(action)
-
         return join_act
+
+    def train(self, env, save_path, max_episode):
+        step = 0
+        cumulate_reward = 0
+        accident = False
+        for episode in range(max_episode):
+            if episode % 10 == 0:
+                print("train_episode", episode)
+            env_s = env.reset()  # init env and return env state
+            counter = 0  # if end episode
+            join_act = self.run_model(env_s)
+            while True:  # one step
+                step += 1
+                try:
+                    env_s, reward, done = env.step(join_act)  # 当前步
+                    env.render()
+                except:
+                    accident = True
+                    break
+                cumulate_reward = reward + cumulate_reward
+                last_join_act = join_act  # 上一步的动作
+                obv = self.n_obv  # 上一步的观察
+                join_act = self.run_model(env_s)
+
+                # 上一步到当前步的转移经验
+                store.store_n_transitions(self, obv, last_join_act, reward)
+                if counter > 300 or done:
+                    break
+                counter += 1
+                if step % 5 == 0:
+                    self.learn(True)
+
+            # record cumulate rewards once an episode
+            if episode % 10 == 0:
+                print("reward:", cumulate_reward)
+            self.reward_his.append(cumulate_reward)
+            if accident:
+                break
+
+        # save model
+        saver = tf.train.Saver()
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        saver.save(self.sess, save_path)
+        # end of game
+        print('game over')
+        # if accident is False:
+        # env.destroy()
+
+        if not os.path.exists('data_for_plot'):
+            os.makedirs('data_for_plot')
+        write_rewards = open('data_for_plot/' + str(self.n_agents) + '-' + str(self.max_coop) + '-reward_his.txt', 'w+')
+        for ip in self.reward_his:
+            write_rewards.write(str(ip))
+            write_rewards.write('\n')
+        write_rewards.close()
+
+        write_costs = open('data_for_plot/' + str(self.n_agents) + '-' + str(self.max_coop) + '-cost_his.txt', 'w+')
+        for ip in self.reward_his:
+            write_costs.write(str(ip))
+            write_costs.write('\n')
+        write_costs.close()
+
+        self.plot_cost()
+        self.plot_reward()
+        self.plot_actions_value()
+
+        return 0

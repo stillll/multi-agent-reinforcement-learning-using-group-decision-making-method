@@ -2,8 +2,11 @@
 #   coop set; -- son of dqn
 #   DQN; -- once
 #   GDM; -- son of coop set
+import tensorflow as tf
+import os
 import numpy as np
 from FindCoopSet import CoopSet
+import store
 
 
 class GDM(CoopSet):
@@ -29,7 +32,8 @@ class GDM(CoopSet):
             batch_size=32,
             e_greedy_increment=None,
             output_graph=False,
-            sess=None
+            sess=None,
+            input_length=max_coop*(n_features+n_actions) if max_discuss > 0 else max_coop*n_features
         )
         self.cll_ba = cll_ba
         self.max_discuss = max_discuss
@@ -147,25 +151,142 @@ class GDM(CoopSet):
         cl_i /= len(coop_set)
         sugg = self.a_prm_to_sugg(a_prm)
         self.all_sugg.append(sugg)
+        self.av_exp_values[i] = av_v
+        self.all_cl.append(cl_i)
         return sugg, av_v, cl_i
 
     def run_model(self, env_s):
+        self.all_coop_sets_l = self.all_coop_sets
         self.new_space()
         self.new_gdm_space()
         join_act = []
         for i in range(self.n_agents):
             coop_set, coop_state_i, q_v = self.coop_set_and_coop_state(i, env_s)
-
-
-            if len(self.all_coop_sets_l) > 0:
-                self.store_n_obv.append(self.state_completion(self.all_coop_sets_l[i], env_s))
-
-            action = self.choose_action(q_v[:self.n_actions])
+            sugg = self.run_gdm(coop_set, q_v)[0]
+            print(sugg)
+            action = self.choose_action(sugg)
             join_act.append(action)
-
         return join_act
 
-    def run_with_dicsuss(self):
-        print('test')
+    def run_model_with_discuss(self, env_s):
+        cll = 0  # CLL
+        discuss_cnt = 0
+        env_s = np.append(env_s, [0.25] * self.n_agents * self.n_actions)
+        self.all_coop_sets_l = self.all_coop_sets
+        while cll < self.cll_ba and discuss_cnt < self.max_discuss * 3:
+            self.new_space()
+            join_act = []
+            sugg_act = []
+            self.new_gdm_space()
+            self.all_sugg = []
+            # agents produce and store their prms
+            for i in range(self.n_agents):
 
+                coop_set, coop_state_i, q_v = self.coop_set_and_coop_state(i, env_s)
 
+                sugg, av_v, cl_i = self.run_gdm(coop_set, q_v)
+
+                for p in range(len(coop_set)):
+                    sugg_act.append(np.argmax(sugg[p]))
+                for j in range(self.max_coop - len(coop_set)):
+                    sugg_act.append(-1)
+
+                action = self.choose_action(sugg)
+                join_act.append(action)
+
+            env_s = np.append(env_s[:self.n_agents * self.n_features], np.array(self.all_sugg).flatten())
+
+            wa = self.av_exp_values - np.min(self.av_exp_values) + 0.01
+            wa = wa / sum(wa)  # WA for CLL
+            cll = np.dot(wa, self.all_cl)
+            discuss_cnt += 1
+        # weights for reward assignment
+        w_r = np.array(self.all_cl)
+
+        return join_act, w_r, sugg_act
+
+    def train(self, env, max_discuss, save_path, max_episode):
+        step = 0
+        cumulate_reward = 0
+        accident = False
+        for episode in range(max_episode):
+            if episode % 10 == 0:
+                print("train_episode", episode)
+            env_s = env.reset()  # init env and return env state
+            counter = 0  # if end episode
+
+            if max_discuss > 0:
+                join_act, w_r, sugg_act = self.run_model_with_discuss(env_s)
+            else:
+                join_act = self.run_model(env_s)
+
+            while True:  # one step
+                step += 1
+
+                if max_discuss > 0:
+                    w_r_ = w_r  # 上一步的奖励系数
+
+                try:
+                    env_s, reward, done = env.step(join_act)  # 当前步
+                    env.render()
+                except:
+                    accident = True
+                    break
+                cumulate_reward = reward + cumulate_reward
+                last_join_act = join_act  # 上一步的动作
+                if max_discuss > 0:
+                    last_sugg_act = sugg_act
+                obv = self.n_obv  # 上一步的观察
+
+                if max_discuss > 0:
+                    join_act, w_r, sugg_act = self.run_model_with_discuss(env_s)
+                else:
+                    join_act = self.run_model(env_s)
+
+                if max_discuss > 0:
+                    store.store_n_transitions_gdm(self, obv, last_join_act, last_sugg_act, reward, w_r_)  # 上一步到当前步的转移经验
+                else:
+                    store.store_n_transitions(self, obv, last_join_act, reward)
+
+                if counter > 300 or done:
+                    break
+                counter += 1
+                if step % 5 == 0:
+                    self.learn(True)
+
+            # record cumulate rewards once an episode
+            if episode % 10 == 0:
+                print("reward:", cumulate_reward)
+            self.reward_his.append(cumulate_reward)
+            if accident:
+                break
+
+        # save model
+        saver = tf.train.Saver()
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        saver.save(self.sess, save_path)
+        # end of game
+        print('game over')
+        # if accident is False:
+        # env.destroy()
+
+        if not os.path.exists('data_for_plot'):
+            os.makedirs('data_for_plot')
+        write_rewards = open('data_for_plot/' + str(self.n_agents) + '-' + str(self.max_coop) + '-reward_his.txt', 'w+')
+        for ip in self.reward_his:
+            write_rewards.write(str(ip))
+            write_rewards.write('\n')
+        write_rewards.close()
+
+        write_costs = open('data_for_plot/' + str(self.n_agents) + '-' + str(self.max_coop) + '-cost_his.txt', 'w+')
+        for ip in self.reward_his:
+            write_costs.write(str(ip))
+            write_costs.write('\n')
+        write_costs.close()
+
+        self.plot_cost()
+        self.plot_reward()
+        self.plot_actions_value()
+
+        return 0

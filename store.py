@@ -31,7 +31,7 @@ def store_n_transitions_gdm(model, last_obv, last_join_act, last_sugg_act, rewar
     for i in range(model.n_agents):
         if model.max_discuss > 0:
             last_sugg_coop_act = last_sugg_act[i * model.max_coop:(i + 1) * model.max_coop]
-            model.store_transition(last_obv[i], last_sugg_coop_act, l_r[i], model.store_n_obv[i])
+            model.store_transition(last_obv[i], last_sugg_coop_act, l_r[i], model.n_obv[i])
         else:
             last_coop_act = np.array(last_join_act)[model.all_coop_sets_l[i]]
             last_coop_act = np.append(last_coop_act, [-1] * (model.max_coop - len(last_coop_act)))
