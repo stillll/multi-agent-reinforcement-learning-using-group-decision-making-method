@@ -111,6 +111,8 @@ def train_or_test(arglist):
         model.train(env, arglist.max_discuss, arglist.save_path + arglist.model_name, max_episode=arglist.max_episode)
         #FindCoopSet
         #model.train(env, arglist.save_path + arglist.model_name, max_episode=arglist.max_episode)
+        #gdm.train_CoopSet(env, arglist.save_path + arglist.model_name, max_episode=arglist.max_episode)
+
 
 
 if __name__ == '__main__':
