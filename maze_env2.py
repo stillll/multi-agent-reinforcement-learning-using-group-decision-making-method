@@ -29,7 +29,7 @@ class Maze(tk.Tk, object):
                  max_coop=2,
                  unit = 100,
                  maze_h = 3,
-                 maze_w = 1,
+                 maze_w = 2,
                  rect_size = 80,
                  rect_pos = []
                  ):
@@ -195,7 +195,9 @@ class Maze(tk.Tk, object):
         # return observation
         env_s = []
         for i in range(self.n_agents):
-            env_s.append(np.array(self.canvas.coords(self.rect_list[i])[:2])/self.unit)
+            env_s.append((self.canvas.coords(self.rect_list[i])[0]+self.canvas.coords(self.rect_list[i])[2])/2 + self.unit/2)
+            env_s.append((self.canvas.coords(self.rect_list[i])[1]+self.canvas.coords(self.rect_list[i])[3])/2 + self.unit/2)
+        env_s = np.array(env_s)/self.unit
         env_s = np.hstack(env_s)
         return env_s[:self.n_agents*self.n_features]
 
