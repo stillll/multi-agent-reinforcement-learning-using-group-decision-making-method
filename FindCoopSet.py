@@ -22,9 +22,10 @@ class CoopSet(DeepQNetwork):
                  batch_size=32,
                  e_greedy_increment=None,
                  output_graph=False,
-                 sess=None):
+                 sess=None,
+                 add_len=0):
         DeepQNetwork.__init__(self,
-                              input_length=max_coop*n_features,
+                              input_length=max_coop*n_features+add_len,
                               output_length=max_coop*n_actions,
                               output_shape=[max_coop,n_actions],
                               action_dim=max_coop,
@@ -47,17 +48,17 @@ class CoopSet(DeepQNetwork):
         self.n_obv = []  # all agents' coop state of this step
         self.store_n_obv = []  # all agents' coop state of this step using last coop set
         #self.env_s_test = []
-        self.__build_net()
+        #self.__build_net()
 
-    def __build_net(self):
+
+    def build_net(self):
         self.test__env_s = tf.placeholder(tf.float32, [self.n_agents*self.n_features], name='test__env_s')
         each_list, actual_coop = self.get_each_list()
         each_coop_state = self.state_completion(each_list, self.test__env_s)
         self._build_net_(each_coop_state)
         self.each_value, soft_max_q = self.get_value(each_list, actual_coop)
         self.select_coop_set_and_Q(each_list,each_coop_state,self.each_value,soft_max_q)
-        self.comunication()
-        #self.QQ = self.Q
+
 
     def get_each_list(self):
         each_list = []
@@ -77,6 +78,7 @@ class CoopSet(DeepQNetwork):
         actual_coop = np.array(actual_coop)
         return each_list, actual_coop
 
+
     def pow_set(self):
         all_agent_id = np.array(range(self.n_agents))
         p_set = []
@@ -89,6 +91,7 @@ class CoopSet(DeepQNetwork):
                 p_set_.append(each_)
             p_set.append(np.array(p_set_))
         return np.array(p_set)
+
 
     def state_completion(self, coop_set_list, env_s):
         idx = []
@@ -110,7 +113,7 @@ class CoopSet(DeepQNetwork):
         return coop_state_list
 
 
-    def _build_net_(self,s):
+    def _build_net_(self,ss):
         with tf.variable_scope('run_net'):
             # c_names(collections_names) are the collections to store variables
             c_names, n_l1, w_initializer, b_initializer = \
@@ -121,7 +124,7 @@ class CoopSet(DeepQNetwork):
             with tf.variable_scope('l1'):
                 w1 = tf.get_variable('w1', [self.input_length, n_l1], initializer=w_initializer, collections=c_names)
                 b1 = tf.get_variable('b1', [1, n_l1], initializer=b_initializer, collections=c_names)
-                l1 = tf.nn.relu(tf.matmul(s, w1) + b1)
+                l1 = tf.nn.relu(tf.matmul(ss, w1) + b1)
 
             with tf.variable_scope('ladd'):
                 wadd = tf.get_variable('wadd', [n_l1,n_l1], initializer=w_initializer, collections=c_names)
@@ -164,6 +167,7 @@ class CoopSet(DeepQNetwork):
         min_soft_q = tf.transpose(min_soft_q,[1,2,0])
         soft_max_q = sotf_q_new - min_soft_q + 0.01
         max_sum = tf.reduce_sum(soft_max_q,axis=2)
+        pdb.set_trace()
         max_sum = tf.concat([[max_sum]]*self.q_run.shape[2],0)
         max_sum = tf.transpose(max_sum,[1,2,0])
         soft_max_q = tf.div(soft_max_q, max_sum)
@@ -172,7 +176,6 @@ class CoopSet(DeepQNetwork):
         value_ = tf.reduce_sum(value_,axis=1)
         actual_coop_ = tf.cast(actual_coop,dtype=tf.float32)
         value = tf.div(value_,actual_coop_)
-        
         return value, soft_max_q
 
     def select_coop_set_and_Q(self,set_list_, state_list_, value_list_,soft_max_q):
@@ -184,62 +187,17 @@ class CoopSet(DeepQNetwork):
         arange_v_base = tf.concat([[dimen/self.n_agents]]*self.n_agents,0)
         arange_v_base = tf.cast(arange_v_base,tf.int32)
         arange_v = tf.multiply(arange_v,arange_v_base)
-        index_ = tf.add(value_max, arange_v)
-        self.value = tf.gather(value_list_,index_)
-        self.set_list = tf.gather(set_list_,index_)
-        self.coop_state_list = tf.gather(state_list_,index_)
-        self.Q = tf.gather(self.q_run,index_)
-        self.soft_max_q = tf.gather(soft_max_q,index_)
-        self.idx = tf.gather(self.idx,index_)
+        self.index_ = tf.add(value_max, arange_v)
+        self.value = tf.gather(value_list_,self.index_)
+        self.set_list = tf.gather(set_list_,self.index_)
+        self.coop_state_list = tf.gather(state_list_,self.index_)
+        self.Q = tf.gather(self.q_run,self.index_)
+        self.soft_max_q = tf.gather(soft_max_q,self.index_)
+        self.idx = tf.gather(self.idx,self.index_)
 
-    def comunication(self):
-        alt_planA = tf.concat([[self.soft_max_q]]*self.n_actions,0)
-        alt_planA = tf.transpose(alt_planA,[1,2,3,0])
-        alt_planB = tf.transpose(alt_planA,[0,1,3,2])
-        alt_plan = tf.div(alt_planA, tf.add(alt_planA, alt_planB))
-        alt_plan = alt_plan[tf.newaxis,:]
-        alt_plan = tf.transpose(alt_plan,[3,4,2,1,0])
-        set_mext = tf.one_hot(self.set_list,self.n_agents+1)
-        set_mext = tf.transpose(set_mext,[2,0,1])
-        set_mext = tf.concat([[set_mext]]*self.n_actions,0)
-        set_mext = tf.concat([[set_mext]]*self.n_actions,0)
-        set_mext = tf.transpose(set_mext,[0,1,4,2,3])
-        a_value = tf.reduce_min(self.value)
-        a_value = tf.concat([[a_value]]*self.n_agents,0)
-        a_value = self.value - a_value + 0.01
-        a_value = tf.div(a_value,tf.reduce_sum(a_value))
-        mul_value = tf.concat([[a_value]]*(self.n_agents+1),0)
-        mul_value = tf.concat([[mul_value]]*self.max_coop,0)
-        mul_value = tf.concat([[mul_value]]*self.n_actions,0)
-        mul_value = tf.concat([[mul_value]]*self.n_actions,0)
-        set_mext = tf.multiply(set_mext,mul_value)
-        #set_mext_sum = tf.reduce_sum(set_mext,axis=4)
-        #set_mext_sum = tf.concat([[set_mext_sum]]*self.n_agents,0)
-        #set_mext_sum = tf.transpose(set_mext_sum,[1,2,3,4,0])
-        #set_mext = tf.div(set_mext,set_mext_sum)
-        rfm_i = tf.matmul(set_mext[:,:,:,:self.n_agents,:],alt_plan)
-        rfm_i = tf.transpose(rfm_i,[4,2,3,0,1])
-        rfm_i = rfm_i[0]
-        rfm_i = tf.reduce_sum(rfm_i,axis=0)
-        #omiga = self.set_list
-        rfm_base = rfm_i[:,0,0]
-        rfm_base = tf.concat([[rfm_base]]*self.n_actions,0)
-        rfm_base = tf.concat([[rfm_base]]*self.n_actions,0)
-        rfm_base = tf.transpose(rfm_base,[2,1,0])
-        rfm_i = tf.div(rfm_i,rfm_base)
-        rfm_i = tf.div(rfm_i,2)
-        #aaa = self.sess.run(rfm_i, feed_dict={self.test__env_s: self.env_s_test})
-        Q_div = tf.div(1.,rfm_i)
-        Q_div = tf.reduce_sum(Q_div,axis=2)
-        Q_div = Q_div - self.n_actions
-        QQQ = tf.div(1.,Q_div)
-        QQ_sum = tf.reduce_sum(QQQ,axis=1)
-        QQ_sum = tf.concat([[QQ_sum]]*self.n_actions,0)
-        QQ_sum = tf.transpose(QQ_sum,[1,0])
-        self.QQ = tf.div(QQQ,QQ_sum)
-        
 
-    def train_CoopSet(self,env, save_path, max_episode):
+    def train_CoopSet(self, env, save_path, max_episode):
+        self.build_net()
         step = 0
         accident = False
         for episode in range(max_episode):
@@ -249,12 +207,13 @@ class CoopSet(DeepQNetwork):
             store_cost_flag = True  # if store cost
             counter = 0  # if end episode
             #pdb.set_trace()
-            sq,idx,env_new,SL,CSL,QQQ = self.sess.run(\
-                [self.soft_max_q,self.idx,self.env_new,self.set_list,self.coop_state_list,self.QQ],
+            idx,env_new,SL,CSL,QQQ = self.sess.run(\
+                [self.idx,self.env_new,self.set_list,self.coop_state_list,self.Q],
                  feed_dict={self.test__env_s: env_s})
             join_act = []
+            print(SL)
             for i in range(self.n_agents):
-                join_act.append(self.choose_action(QQQ[i]))
+                join_act.append(self.choose_action(QQQ[i][0]))
             while True:  # one step
                 # learn
                 step += 1
@@ -274,12 +233,12 @@ class CoopSet(DeepQNetwork):
                     break
 
                 # ==============================================
-                value,idx,env_new,SL,CSL,QQQ = self.sess.run(\
-                    [self.each_value,self.idx,self.env_new,self.set_list,self.coop_state_list,self.QQ],
+                idx,env_new,SL,CSL,QQQ = self.sess.run(\
+                    [self.idx,self.env_new,self.set_list,self.coop_state_list,self.Q],
                      feed_dict={self.test__env_s: env_s})
                 join_act = []
                 for i in range(self.n_agents):
-                    join_act.append(self.choose_action(QQQ[i]))
+                    join_act.append(self.choose_action(QQQ[i][0]))
                 #action_ = np.argmax(QQQ, axis= 2)
                 #action = np.transpose(action_, [1,0])
                 #join_act = action[0]
@@ -287,6 +246,8 @@ class CoopSet(DeepQNetwork):
                 #store.store_n_transitions(gdm, obv, last_join_act, last_sugg_act, reward, w_r_)  # 上一步到当前步的转移经验
                 #store.store_n_transitions(cs, obv, last_join_act, reward)
 
+                #print(join_act)
+                #print(QQQ)
                 self.store_transitions(last_SL,last_CSL,last_join_act,reward,env_new,last_idx)
 
                 if counter > 300 or done:
@@ -303,31 +264,10 @@ class CoopSet(DeepQNetwork):
                 self.test_CoopSet(env)
             if accident:
                 break
-        #self.all_coop_sets.append(coop_set)
-        #self.n_obv.append(coop_state_i)
-       # save model
-        #saver = tf.train.Saver()
-        #if not os.path.exists(save_path):
-        #    os.makedirs(save_path)
-        #saver.save(cs.sess, save_path)
-        # end of game
+
+
         print('game over')
-        #if accident is False:
-            #env.destroy()
 
-        #if not os.path.exists('data_for_plot'):
-        #    os.makedirs('data_for_plot')
-        #write_rewards = open('data_for_plot/'+str(cs.n_agents)+'-'+str(cs.max_coop)+'-reward_his.txt', 'w+')
-        #for ip in cs.reward_his:
-        #    write_rewards.write(str(ip))
-        #    write_rewards.write('\n')
-        #write_rewards.close()
-
-        #write_costs = open('data_for_plot/'+str(cs.n_agents)+'-'+str(cs.max_coop)+'-cost_his.txt', 'w+')
-        #for ip in cs.reward_his:
-        #    write_costs.write(str(ip))
-        #    write_costs.write('\n')
-        #write_costs.close()
 
         self.plot_cost()
         self.plot_reward()
@@ -342,23 +282,22 @@ class CoopSet(DeepQNetwork):
         return action
 
 
+
     def store_transitions(self,last_SL,last_CSL,last_join_act,reward,env_new,idx):
         for i in range(self.n_agents):
             last_coop_act = np.array(last_join_act+[-1])[last_SL[i]]
             CSL = env_new[idx[i]]
             self.store_transition(last_CSL[i], last_coop_act, reward, CSL)
 
-            #print(last_SL)
-
 
 
     def test_CoopSet(self,env):
         print("test_episode", len(self.reward_his))
         env_s = env.reset()
-        QQQ = self.sess.run(self.QQ, feed_dict={self.test__env_s: env_s})
+        QQQ = self.sess.run(self.Q, feed_dict={self.test__env_s: env_s})
         join_act = []
         for i in range(self.n_agents):
-            join_act.append(self.choose_action(QQQ[i]))
+            join_act.append(np.argmax(QQQ[i][0]))
         step = 0
         accident = False
         cumulate_reward = 0
@@ -371,10 +310,10 @@ class CoopSet(DeepQNetwork):
                 accident = True
                 break
             cumulate_reward = reward + cumulate_reward
-            QQQ = self.sess.run(self.QQ, feed_dict={self.test__env_s: env_s})
+            QQQ = self.sess.run(self.Q, feed_dict={self.test__env_s: env_s})
             join_act = []
             for i in range(self.n_agents):
-                join_act.append(self.choose_action(QQQ[i]))
+                join_act.append(np.argmax(QQQ[i][0]))
             if done:
                 break
         self.reward_his.append(cumulate_reward)
