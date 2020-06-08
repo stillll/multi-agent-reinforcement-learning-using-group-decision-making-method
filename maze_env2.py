@@ -20,17 +20,17 @@ if sys.version_info.major == 2:
 else:
     import tkinter as tk
 
-
+import pdb
 
 
 class Maze(tk.Tk, object):
     def __init__(self,
                  n_agents=3,
                  max_coop=2,
-                 unit = 8,
-                 maze_h = 30,
-                 maze_w = 30,
-                 rect_size = 6,
+                 unit = 100,
+                 maze_h = 5,
+                 maze_w = 1,
+                 rect_size = 80,
                  rect_pos = []
                  ):
         super(Maze, self).__init__()
@@ -195,7 +195,9 @@ class Maze(tk.Tk, object):
         # return observation
         env_s = []
         for i in range(self.n_agents):
-            env_s.append(np.array(self.canvas.coords(self.rect_list[i])[:2])/self.unit)
+            env_s.append((self.canvas.coords(self.rect_list[i])[0]+self.canvas.coords(self.rect_list[i])[2])/2 + self.unit/2)
+            env_s.append((self.canvas.coords(self.rect_list[i])[1]+self.canvas.coords(self.rect_list[i])[3])/2 + self.unit/2)
+        env_s = np.array(env_s)/self.unit
         env_s = np.hstack(env_s)
         return env_s[:self.n_agents*self.n_features]
 
@@ -231,20 +233,29 @@ class Maze(tk.Tk, object):
             self.canvas.move(self.oval, base_act[0], base_act[1])
         """
         next_coords = []
+
         for i in range(self.n_agents):
             base_action = np.array([0, 0])
             if action[i] == 0:   # up
                 if self.canvas.coords(self.rect_list[i])[1] > self.unit:
                     base_action[1] -= self.unit
+                else:
+                    base_action[1] += self.unit*(self.maze_h-1)
             elif action[i] == 1:   # down
                 if self.canvas.coords(self.rect_list[i])[1] < (self.maze_h - 1) * self.unit:
                     base_action[1] += self.unit
+                else:
+                    base_action[1] -= self.unit*(self.maze_h-1)
             elif action[i] == 2:   # right
                 if self.canvas.coords(self.rect_list[i])[0] < (self.maze_w - 1) * self.unit:
                     base_action[0] += self.unit
+                else:
+                    base_action[0] -= self.unit*(self.maze_w-1)
             elif action[i] == 3:   # left
                 if self.canvas.coords(self.rect_list[i])[0] > self.unit:
                     base_action[0] -= self.unit
+                else:
+                    base_action[0] += self.unit*(self.maze_w-1)
             self.canvas.move(self.rect_list[i], base_action[0], base_action[1])  # move agent
             next_coords.append([(self.canvas.coords(self.rect_list[i])[0]+self.canvas.coords(self.rect_list[i])[2])/2 + self.unit/2
                 ,(self.canvas.coords(self.rect_list[i])[1]+self.canvas.coords(self.rect_list[i])[3])/2 + self.unit/2])  # next state
@@ -264,6 +275,7 @@ class Maze(tk.Tk, object):
         else:
             reward = 0
             done = False'''
+        '''
         reward = 0
         done = False
         #pdb.set_trace()
@@ -271,6 +283,28 @@ class Maze(tk.Tk, object):
             for j in range(self.n_agents):
                 if i < j and next_coords[i][0]==next_coords[j][0] and abs(next_coords[i][1] - next_coords[j][1]) == self.unit:
                     reward = reward + 1
+                if i < j and next_coords[i][0]==next_coords[j][0] and next_coords[i][1] < self.unit and next_coords[j][1] > self.unit*(self.maze_h-1):
+                    reward = reward + 1
+                if i < j and next_coords[i][0]==next_coords[j][0] and next_coords[j][1] < self.unit and next_coords[i][1] > self.unit*(self.maze_h-1):
+                    reward = reward + 1
+                if i < j and next_coords[i][1]==next_coords[j][1] and abs(next_coords[i][0] - next_coords[j][0]) == self.unit:
+                    reward = reward + 1
+                if i < j and next_coords[i][1]==next_coords[j][1] and next_coords[i][0] < self.unit and next_coords[j][0] > self.unit*(self.maze_w-1):
+                    reward = reward + 1
+                if i < j and next_coords[i][1]==next_coords[j][1] and next_coords[j][0] < self.unit and next_coords[i][0] > self.unit*(self.maze_w-1):
+                    reward = reward + 1
+        '''
+
+
+        reward = 5
+        done = True
+        #pdb.set_trace()
+        for i in range(self.n_agents):
+            for j in range(self.n_agents):
+                if next_coords[i][0]!=next_coords[j][0] or next_coords[i][1]!=next_coords[j][1]:
+                    reward = -1
+                    done = False
+
 
         '''#print(next_coords[0],next_coords2[0],next_coords3[0],(MAZE_H - 1) * UNIT,UNIT)
         if next_coords[0] > (MAZE_H - 1) * UNIT or next_coords2[0] > (MAZE_H - 1) * UNIT:
