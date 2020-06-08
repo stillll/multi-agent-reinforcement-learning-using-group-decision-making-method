@@ -260,7 +260,7 @@ class GDM(CoopSet):
                 feed_dict={self.test__env_s: env_s,
                 self.test__suggestion: suggestion})
         discuss_time = 1
-        while(cll < self.cll_ba and discuss_time < self.max_discuss):
+        while(discuss_time < self.max_discuss):
             discuss_time = discuss_time + 1
             suggestion = QQQ.flatten()
             omig,idx,idx_s,env_new,suggestion_new,SL,CSL,QQQ,mid_Q,cll = self.sess.run(\
@@ -284,9 +284,7 @@ class GDM(CoopSet):
     def test_CoopSet(self,env):
         print("test_episode", len(self.reward_his))
         env_s = env.reset()
-        suggestion = [1./self.n_actions]*self.n_actions*self.n_agents
-        QQQ = self.sess.run(self.QQ, feed_dict={self.test__env_s: env_s,
-            self.test__suggestion: suggestion})
+        omig,idx,idx_s,env_new,suggestion_new,SL,CSL,QQQ,mid_Q = self.discuss(env_s)
         join_act = []
         for i in range(self.n_agents):
             join_act.append(self.choose_action(QQQ[i]))
@@ -302,9 +300,7 @@ class GDM(CoopSet):
                 accident = True
                 break
             cumulate_reward = reward + cumulate_reward
-            suggestion = [1./self.n_actions]*self.n_actions*self.n_agents
-            QQQ = self.sess.run(self.QQ, feed_dict={self.test__env_s: env_s,
-                self.test__suggestion: suggestion})
+            omig,idx,idx_s,env_new,suggestion_new,SL,CSL,QQQ,mid_Q = self.discuss(env_s)
             join_act = []
             for i in range(self.n_agents):
                 join_act.append(self.choose_action(QQQ[i]))

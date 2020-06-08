@@ -47,7 +47,7 @@ def parse_args():
     parser.add_argument("--gamma", type=float, default=0.90, help="discount factor")
     parser.add_argument("--e_greedy", type=float, default=0.90, help="greedy degree")
     parser.add_argument("--batch_size", type=int, default=32, help="number of episodes to optimize at the same time")
-    parser.add_argument("--cll_ba", type=float, default=0.90, help="threshold of cooperate level")
+    parser.add_argument("--cll_ba", type=float, default=0.93, help="threshold of cooperate level")
     parser.add_argument("--replace_target_iter", type=int, default=500, help="update rate for target network")
     parser.add_argument("--memory_size", type=int, default=2000, help="the size of memory pool")
     # save and display
