@@ -28,7 +28,7 @@ class Maze(tk.Tk, object):
                  n_agents=3,
                  max_coop=2,
                  unit = 100,
-                 maze_h = 5,
+                 maze_h = 3,
                  maze_w = 1,
                  rect_size = 80,
                  rect_pos = []

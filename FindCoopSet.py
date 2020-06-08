@@ -167,7 +167,6 @@ class CoopSet(DeepQNetwork):
         min_soft_q = tf.transpose(min_soft_q,[1,2,0])
         soft_max_q = sotf_q_new - min_soft_q + 0.01
         max_sum = tf.reduce_sum(soft_max_q,axis=2)
-        pdb.set_trace()
         max_sum = tf.concat([[max_sum]]*self.q_run.shape[2],0)
         max_sum = tf.transpose(max_sum,[1,2,0])
         soft_max_q = tf.div(soft_max_q, max_sum)
