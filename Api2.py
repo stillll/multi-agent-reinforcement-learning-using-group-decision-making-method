@@ -96,6 +96,7 @@ def set_model(arglist):
          cll_ba=arglist.cll_ba,
          max_discuss=arglist.max_discuss
     )
+    
     return cs
 
 

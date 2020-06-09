@@ -27,10 +27,10 @@ class Maze(tk.Tk, object):
     def __init__(self,
                  n_agents=3,
                  max_coop=2,
-                 unit = 100,
-                 maze_h = 3,
-                 maze_w = 1,
-                 rect_size = 80,
+                 unit = 80,
+                 maze_h = 5,
+                 maze_w = 5,
+                 rect_size = 64,
                  rect_pos = []
                  ):
         super(Maze, self).__init__()
@@ -296,15 +296,17 @@ class Maze(tk.Tk, object):
         '''
 
 
-        reward = 5
+        reward = self.n_agents*(self.n_agents - 1) - 1
         done = True
         #pdb.set_trace()
         for i in range(self.n_agents):
             for j in range(self.n_agents):
                 if next_coords[i][0]!=next_coords[j][0] or next_coords[i][1]!=next_coords[j][1]:
-                    reward = -1
+                    reward = reward - 1
                     done = False
 
+        if done:
+            reward = self.n_agents*self.n_agents*300
 
         '''#print(next_coords[0],next_coords2[0],next_coords3[0],(MAZE_H - 1) * UNIT,UNIT)
         if next_coords[0] > (MAZE_H - 1) * UNIT or next_coords2[0] > (MAZE_H - 1) * UNIT:

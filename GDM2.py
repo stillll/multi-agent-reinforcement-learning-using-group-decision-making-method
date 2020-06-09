@@ -34,7 +34,7 @@ class GDM(CoopSet):
             add_len=max_coop*n_actions
         )
         self.cll_ba = cll_ba
-        self.max_discuss = max_discuss
+        self.max_discuss = np.ceil(np.log(n_agents)/np.log(max_coop))
         self.all_agents_prms = [[] for i in range(self.n_agents)]  # 2-dim list to store numpys
         self.who_give_suggestion = [[] for i in range(self.n_agents)]
         self.av_exp_values = np.zeros(n_agents)  # average expect values of all agents
@@ -169,8 +169,8 @@ class GDM(CoopSet):
             #pdb.set_trace()
             omig,idx,idx_s,env_new,suggestion_new,SL,CSL,QQQ,mid_Q = self.discuss(env_s)
             join_act = []
-            print(SL)
-            print(omig)
+            #print(SL)
+            #print(omig)
             for i in range(self.n_agents):
                 join_act.append(self.choose_action(QQQ[i]))
             while True:  # one step
@@ -185,8 +185,8 @@ class GDM(CoopSet):
                 last_join_act = join_act
                 last_idx = idx
                 last_idx_s = idx_s
-                last_omiga = omig
-                last_midQ = mid_Q
+                #last_omiga = omig
+                #last_midQ = mid_Q
                 try:
                     env_s, reward, done = env.step(join_act)  # 当前步
                     env.render()
@@ -206,9 +206,10 @@ class GDM(CoopSet):
                 #store.store_n_transitions(gdm, obv, last_join_act, last_sugg_act, reward, w_r_)  # 上一步到当前步的转移经验
                 #store.store_n_transitions(cs, obv, last_join_act, reward)
 
-                self.store_transitions(last_SL,last_CSL,last_midQ,reward,env_new,suggestion_new,last_idx,last_idx_s,last_omiga)
+                self.store_transitions(last_SL,last_CSL,last_join_act,reward,env_new,suggestion_new,last_idx,last_idx_s)
 
                 if counter > 300 or done:
+                    print(counter)
                     break
                 counter += 1
                 if step % 5 == 0:
@@ -255,29 +256,29 @@ class GDM(CoopSet):
 
     def discuss(self,env_s):
         suggestion = [1./self.n_actions]*self.n_actions*self.n_agents
-        omig,idx,idx_s,env_new,suggestion_new,SL,CSL,QQQ,mid_Q,cll = self.sess.run(\
-            [self.omiga,self.idx,self.idx_s,self.env_new,self.suggestion_new,self.set_list,self.coop_state_list,self.QQ,self.Q,self.cll],
+        omig,idx,idx_s,env_new,suggestion_new,SL,CSL,QQQ,mid_Q = self.sess.run(\
+            [self.omiga,self.idx,self.idx_s,self.env_new,self.suggestion_new,self.set_list,self.coop_state_list,self.QQ,self.Q],
                 feed_dict={self.test__env_s: env_s,
                 self.test__suggestion: suggestion})
         discuss_time = 1
-        while(discuss_time < self.max_discuss):
+        while(discuss_time <= self.max_discuss):
             discuss_time = discuss_time + 1
             suggestion = QQQ.flatten()
-            omig,idx,idx_s,env_new,suggestion_new,SL,CSL,QQQ,mid_Q,cll = self.sess.run(\
-                [self.omiga,self.idx,self.idx_s,self.env_new,self.suggestion_new,self.set_list,self.coop_state_list,self.QQ,self.Q,self.cll],
+            omig,idx,idx_s,env_new,suggestion_new,SL,CSL,QQQ,mid_Q = self.sess.run(\
+                [self.omiga,self.idx,self.idx_s,self.env_new,self.suggestion_new,self.set_list,self.coop_state_list,self.QQ,self.Q],
                     feed_dict={self.test__env_s: env_s,
                     self.test__suggestion: suggestion})
         return omig,idx,idx_s,env_new,suggestion_new,SL,CSL,QQQ,mid_Q
 
 
-    def store_transitions(self,last_SL,last_CSL,last_midQ,reward,env_new,suggestion_new,idx,idx_s,omig):
+    def store_transitions(self,last_SL,last_CSL,last_join_act,reward,env_new,suggestion_new,idx,idx_s):
         for i in range(self.n_agents):
-            last_coop_act = np.argmax(last_midQ[i],axis=1)
-            #last_coop_act = np.array(last_join_act+[-1])[last_SL[i]]
+            #last_coop_act = np.argmax(last_midQ[i],axis=1)
+            last_coop_act = np.array(last_join_act+[-1])[last_SL[i]]
             CSL = env_new[idx[i]]
             SuL = suggestion_new[idx_s[i]]
             CSL = np.append(CSL,SuL)
-            self.store_transition(last_CSL[i], last_coop_act, omig[i]*reward, CSL)
+            self.store_transition(last_CSL[i], last_coop_act, reward, CSL)
 
 
 
@@ -287,7 +288,7 @@ class GDM(CoopSet):
         omig,idx,idx_s,env_new,suggestion_new,SL,CSL,QQQ,mid_Q = self.discuss(env_s)
         join_act = []
         for i in range(self.n_agents):
-            join_act.append(self.choose_action(QQQ[i]))
+            join_act.append(np.argmax(QQQ[i]))
         step = 0
         accident = False
         cumulate_reward = 0
@@ -303,7 +304,7 @@ class GDM(CoopSet):
             omig,idx,idx_s,env_new,suggestion_new,SL,CSL,QQQ,mid_Q = self.discuss(env_s)
             join_act = []
             for i in range(self.n_agents):
-                join_act.append(self.choose_action(QQQ[i]))
+                join_act.append(np.argmax(QQQ[i]))
             if done:
                 break
         self.reward_his.append(cumulate_reward)

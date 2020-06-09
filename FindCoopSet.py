@@ -117,7 +117,7 @@ class CoopSet(DeepQNetwork):
         with tf.variable_scope('run_net'):
             # c_names(collections_names) are the collections to store variables
             c_names, n_l1, w_initializer, b_initializer = \
-                ['run_net_params', tf.GraphKeys.GLOBAL_VARIABLES], 10, \
+                ['run_net_params', tf.GraphKeys.GLOBAL_VARIABLES], self.input_length, \
                 tf.random_normal_initializer(0., 0.3), tf.constant_initializer(0.1)  # config of layers
 
             # first layer. collections is used later when assign to target net
@@ -166,15 +166,16 @@ class CoopSet(DeepQNetwork):
         min_soft_q = tf.concat([[min_soft_q]]*self.q_run.shape[2],0)
         min_soft_q = tf.transpose(min_soft_q,[1,2,0])
         soft_max_q = sotf_q_new - min_soft_q + 0.01
+        soft_max_q = tf.multiply(soft_max_q,zd)
         max_sum = tf.reduce_sum(soft_max_q,axis=2)
         max_sum = tf.concat([[max_sum]]*self.q_run.shape[2],0)
         max_sum = tf.transpose(max_sum,[1,2,0])
         soft_max_q = tf.div(soft_max_q, max_sum)
-        soft_max_q_ = tf.multiply(soft_max_q,zd)
-        value_ = tf.reduce_sum(tf.multiply(soft_max_q_, self.q_run),axis=2)
+        value_ = tf.reduce_sum(tf.multiply(soft_max_q, self.q_run),axis=2)
         value_ = tf.reduce_sum(value_,axis=1)
-        actual_coop_ = tf.cast(actual_coop,dtype=tf.float32)
-        value = tf.div(value_,actual_coop_)
+        #actual_coop_ = tf.cast(actual_coop,dtype=tf.float32)
+        #value = tf.div(value_,actual_coop_)
+        value = value_
         return value, soft_max_q
 
     def select_coop_set_and_Q(self,set_list_, state_list_, value_list_,soft_max_q):
@@ -182,7 +183,7 @@ class CoopSet(DeepQNetwork):
         value_list = tf.reshape(value_list_, [self.n_agents, dimen/self.n_agents])
         value_max = tf.math.argmax(value_list,1)
         value_max = tf.cast(value_max,tf.int32)
-        arange_v = np.arange(0,self.n_agents)
+        arange_v = np.arange(0,self.n_agents, dtype=np.int32)
         arange_v_base = tf.concat([[dimen/self.n_agents]]*self.n_agents,0)
         arange_v_base = tf.cast(arange_v_base,tf.int32)
         arange_v = tf.multiply(arange_v,arange_v_base)
@@ -210,7 +211,7 @@ class CoopSet(DeepQNetwork):
                 [self.idx,self.env_new,self.set_list,self.coop_state_list,self.Q],
                  feed_dict={self.test__env_s: env_s})
             join_act = []
-            print(SL)
+            #print(SL)
             for i in range(self.n_agents):
                 join_act.append(self.choose_action(QQQ[i][0]))
             while True:  # one step
@@ -250,6 +251,7 @@ class CoopSet(DeepQNetwork):
                 self.store_transitions(last_SL,last_CSL,last_join_act,reward,env_new,last_idx)
 
                 if counter > 300 or done:
+                    print(counter)
                     break
                 counter += 1
                 if step % 5 == 0:
