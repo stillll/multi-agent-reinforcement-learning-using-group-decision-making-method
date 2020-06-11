@@ -7,7 +7,7 @@ if sys.version_info.major == 2:
     import Tkinter as tk
 else:
     import tkinter as tk
-
+import pdb
 
 class Coop(tk.Tk):
     def __init__(self, args):

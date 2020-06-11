@@ -27,10 +27,10 @@ class Maze(tk.Tk, object):
     def __init__(self,
                  n_agents=3,
                  max_coop=2,
-                 unit = 80,
-                 maze_h = 5,
-                 maze_w = 5,
-                 rect_size = 64,
+                 unit = 40,
+                 maze_h = 9,
+                 maze_w = 9,
+                 rect_size = 32,
                  rect_pos = []
                  ):
         super(Maze, self).__init__()
@@ -48,6 +48,7 @@ class Maze(tk.Tk, object):
         self.title('maze')
         self.geometry('{0}x{1}'.format(self.maze_w * self.unit, self.maze_h * self.unit))
         self._build_maze()
+        self.last_dis = 0
 
     def _build_maze(self,):
         self.canvas = tk.Canvas(self, bg='white',
@@ -134,6 +135,7 @@ class Maze(tk.Tk, object):
         self.canvas.pack()
 
     def reset(self):
+        self.last_dis = 0
         self.update()
         #time.sleep(0.1)
         self.canvas.delete(self.oval)
@@ -295,7 +297,7 @@ class Maze(tk.Tk, object):
                     reward = reward + 1
         '''
 
-
+        '''
         reward = self.n_agents*(self.n_agents - 1) - 1
         done = True
         #pdb.set_trace()
@@ -307,6 +309,23 @@ class Maze(tk.Tk, object):
 
         if done:
             reward = self.n_agents*self.n_agents*300
+
+        '''
+
+        dis = 0
+        done = True
+        for i in range(self.n_agents):
+            for j in range(self.n_agents):
+                dis = dis + abs(next_coords[i][0]-next_coords[j][0]) + abs(next_coords[i][1]-next_coords[j][1]) - 1
+                if next_coords[i][0]!=next_coords[j][0] or next_coords[i][1]!=next_coords[j][1]:
+                    done = False
+        reward = self.last_dis - dis
+        self.last_dis = dis
+
+        if done:
+            reward = self.n_agents*self.n_agents*self.maze_h*self.maze_w*100
+
+
 
         '''#print(next_coords[0],next_coords2[0],next_coords3[0],(MAZE_H - 1) * UNIT,UNIT)
         if next_coords[0] > (MAZE_H - 1) * UNIT or next_coords2[0] > (MAZE_H - 1) * UNIT:

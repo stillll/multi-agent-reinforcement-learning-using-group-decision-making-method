@@ -26,8 +26,8 @@ class GDM(CoopSet):
             reward_decay=0.9,
             e_greedy=0.9,
             replace_target_iter=300,
-            memory_size=2000,
-            batch_size=32,
+            memory_size=5000,
+            batch_size=5000,
             e_greedy_increment=None,
             output_graph=False,
             sess=None,
@@ -161,16 +161,18 @@ class GDM(CoopSet):
         step = 0
         accident = False
         for episode in range(max_episode):
+            if episode % 10 == 0:
+                self.test_CoopSet(env)
             env_s = env.reset()  # init env and return env state
             #self.env_s_test = env_s
             #self.__build_net()
             store_cost_flag = True  # if store cost
             counter = 0  # if end episode
-            #pdb.set_trace()
             omig,idx,idx_s,env_new,suggestion_new,SL,CSL,QQQ,mid_Q = self.discuss(env_s)
             join_act = []
             #print(SL)
             #print(omig)
+            sum_cost = 0
             for i in range(self.n_agents):
                 join_act.append(self.choose_action(QQQ[i]))
             while True:  # one step
@@ -187,13 +189,14 @@ class GDM(CoopSet):
                 last_idx_s = idx_s
                 #last_omiga = omig
                 #last_midQ = mid_Q
+                
                 try:
                     env_s, reward, done = env.step(join_act)  # 当前步
                     env.render()
                 except:
                     accident = True
                     break
-
+                
                 # ==============================================
                 omig,idx,idx_s,env_new,suggestion_new,SL,CSL,QQQ,mid_Q = self.discuss(env_s)
                 join_act = []
@@ -209,18 +212,18 @@ class GDM(CoopSet):
                 self.store_transitions(last_SL,last_CSL,last_join_act,reward,env_new,suggestion_new,last_idx,last_idx_s)
 
                 if counter > 300 or done:
-                    print(counter)
+                    self.cost_his.append(sum_cost)
+                    print(sum_cost)
                     break
                 counter += 1
-                if step % 5 == 0:
                     #print(value)
-                    self.learn(True)
-                    self.sess.run(self.replace_run_op)
-                    store_cost_flag = False
+                self.learn(True)
+                sum_cost = sum_cost + self.cost
+                self.sess.run(self.replace_run_op)
+                store_cost_flag = False
 
             # record cumulate rewards once an episode
-            if episode % 10 == 0:
-                self.test_CoopSet(env)
+
             if accident:
                 break
         #self.all_coop_sets.append(coop_set)
@@ -260,7 +263,7 @@ class GDM(CoopSet):
             [self.omiga,self.idx,self.idx_s,self.env_new,self.suggestion_new,self.set_list,self.coop_state_list,self.QQ,self.Q],
                 feed_dict={self.test__env_s: env_s,
                 self.test__suggestion: suggestion})
-        discuss_time = 1
+        discuss_time = 1 + self.max_discuss
         while(discuss_time <= self.max_discuss):
             discuss_time = discuss_time + 1
             suggestion = QQQ.flatten()
@@ -307,6 +310,8 @@ class GDM(CoopSet):
                 join_act.append(np.argmax(QQQ[i]))
             if done:
                 break
+        if len(self.reward_his) > 0:
+            cumulate_reward = 0.9*self.reward_his[-1] + cumulate_reward
         self.reward_his.append(cumulate_reward)
         print("reward:", cumulate_reward)
         #q_action = self.sess.run(self.s_,feed_dict={dadada})
