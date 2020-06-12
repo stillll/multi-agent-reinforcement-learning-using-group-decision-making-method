@@ -262,7 +262,7 @@ class GDM(CoopSet):
             [self.omiga,self.idx,self.idx_s,self.env_new,self.suggestion_new,self.set_list,self.coop_state_list,self.QQ,self.Q],
                 feed_dict={self.test__env_s: env_s,
                 self.test__suggestion: suggestion})
-        discuss_time = 1 + self.max_discuss
+        discuss_time = 1
         while(discuss_time <= self.max_discuss):
             discuss_time = discuss_time + 1
             suggestion = QQQ.flatten()

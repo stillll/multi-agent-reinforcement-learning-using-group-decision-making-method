@@ -32,7 +32,7 @@ class Maze(tk.Tk, object):
                  maze_w = 9,
                  rect_size = 32,
                  rect_pos = [],
-                 show = False
+                 show = True
                  ):
         super(Maze, self).__init__()
         self.action_space = ['u', 'd', 'l', 'r']
@@ -45,7 +45,7 @@ class Maze(tk.Tk, object):
         self.unit = unit
         self.rect_size = rect_size
         self.rect_pos_list = rect_pos
-        self.rect_pos_list_his = rect_pos
+        self.rect_pos_list_his = rect_pos.copy()
         self.rect_list = []
         self.last_dis = 0
         self.done = False
@@ -115,6 +115,7 @@ class Maze(tk.Tk, object):
     def reset(self):
         self.last_dis = 0
         self.done = False
+        self.rect_pos_list = self.rect_pos_list_his.copy()
         hell1_loc_h = random.randint(0, self.maze_h-1)
         hell1_loc_w = random.randint(0, self.maze_w-1)
         oval_loc_h = random.randint(0, self.maze_h-1)
