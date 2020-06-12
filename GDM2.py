@@ -254,7 +254,6 @@ class GDM(CoopSet):
 
         self.plot_cost()
         self.plot_reward()
-        self.plot_actions_value()
 
 
     def discuss(self,env_s):

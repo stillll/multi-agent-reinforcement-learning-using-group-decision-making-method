@@ -49,3 +49,5 @@ tst.py
 debugs/checkpoint
 DQN_torch.py
 
+cost.png
+reward.png

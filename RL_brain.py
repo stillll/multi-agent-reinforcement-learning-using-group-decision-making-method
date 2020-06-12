@@ -61,7 +61,6 @@ class DeepQNetwork:
 
         self.cost_his = []
         self.reward_his = []
-        self.action_value_his = [[],[],[],[]]
         self.memory_counter = 0
 
         if sess is None:
@@ -254,19 +253,12 @@ class DeepQNetwork:
         plt.plot(np.arange(len(self.cost_his)), self.cost_his)
         plt.ylabel('Cost')
         plt.xlabel('episode')
-        plt.show()
+        plt.savefig('cost.png')
+        #plt.show()
 
     def plot_reward(self):
         plt.plot(np.arange(len(self.reward_his)), self.reward_his)
         plt.ylabel('reward')
         plt.xlabel('episode')
-        plt.show()
-
-    def plot_actions_value(self):
-        plt.plot(np.arange(len(self.action_value_his[0])), self.action_value_his[0],color='red')
-        plt.plot(np.arange(len(self.action_value_his[1])), self.action_value_his[1],color='green')
-        plt.plot(np.arange(len(self.action_value_his[2])), self.action_value_his[2],color='blue')
-        plt.plot(np.arange(len(self.action_value_his[3])), self.action_value_his[3],color='black')
-        plt.ylabel('actions_value')
-        plt.xlabel('step')
-        plt.show()
+        plt.savefig('reward.png')
+        #plt.show()
