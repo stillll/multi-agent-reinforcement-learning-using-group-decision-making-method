@@ -104,8 +104,8 @@ class Maze(tk.Tk, object):
             # create agents
             for i in range(self.n_agents):
                 self.rect_list.append(self.canvas.create_rectangle(
-                    origin[0] + self.unit*(self.rect_pos_list[i*2]-1) - self.rect_size/2, origin[1] + self.unit*(self.rect_pos_list[i*2+1]-1) - self.rect_size/2,
-                    origin[0] + self.unit*(self.rect_pos_list[i*2]-1) + self.rect_size/2, origin[1] + self.unit*(self.rect_pos_list[i*2+1]-1) + self.rect_size/2,
+                    origin[0] + self.unit*(self.rect_pos_list[i*2]) - self.rect_size/2, origin[1] + self.unit*(self.rect_pos_list[i*2+1]) - self.rect_size/2,
+                    origin[0] + self.unit*(self.rect_pos_list[i*2]) + self.rect_size/2, origin[1] + self.unit*(self.rect_pos_list[i*2+1]) + self.rect_size/2,
                     fill='red'))
 
 
@@ -157,8 +157,8 @@ class Maze(tk.Tk, object):
             # create agents
             for i in range(self.n_agents):
                 self.rect_list.append(self.canvas.create_rectangle(
-                    origin[0] + self.unit*(self.rect_pos_list[i*2]-1) - self.rect_size/2, origin[1] + self.unit*(self.rect_pos_list[i*2+1]-1) - self.rect_size/2,
-                    origin[0] + self.unit*(self.rect_pos_list[i*2]-1) + self.rect_size/2, origin[1] + self.unit*(self.rect_pos_list[i*2+1]-1) + self.rect_size/2,
+                    origin[0] + self.unit*(self.rect_pos_list[i*2]) - self.rect_size/2, origin[1] + self.unit*(self.rect_pos_list[i*2+1]) - self.rect_size/2,
+                    origin[0] + self.unit*(self.rect_pos_list[i*2]) + self.rect_size/2, origin[1] + self.unit*(self.rect_pos_list[i*2+1]) + self.rect_size/2,
                     fill='red'))
 
         # return observation
@@ -184,12 +184,12 @@ class Maze(tk.Tk, object):
                 else:
                     base_action[1] += self.maze_h-1
             elif action[i] == 1:   # down
-                if self.rect_pos_list[i*2+1] < self.maze_h:
+                if self.rect_pos_list[i*2+1] < self.maze_h-1:
                     base_action[1] += 1
                 else:
                     base_action[1] -= self.maze_h-1
             elif action[i] == 2:   # right
-                if self.rect_pos_list[i*2] < self.maze_w:
+                if self.rect_pos_list[i*2] < self.maze_w-1:
                     base_action[0] += 1
                 else:
                     base_action[0] -= self.maze_w - 1

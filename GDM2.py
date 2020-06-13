@@ -290,7 +290,7 @@ class GDM(CoopSet):
         omig,idx,idx_s,env_new,suggestion_new,SL,CSL,QQQ,mid_Q = self.discuss(env_s)
         join_act = []
         for i in range(self.n_agents):
-            join_act.append(np.argmax(QQQ[i]))
+            join_act.append(self.choose_action(QQQ[i]))
         step = 0
         accident = False
         cumulate_reward = 0
@@ -306,7 +306,7 @@ class GDM(CoopSet):
             omig,idx,idx_s,env_new,suggestion_new,SL,CSL,QQQ,mid_Q = self.discuss(env_s)
             join_act = []
             for i in range(self.n_agents):
-                join_act.append(np.argmax(QQQ[i]))
+                join_act.append(self.choose_action(QQQ[i]))
             if done:
                 break
         if len(self.reward_his) > 0:

@@ -255,6 +255,7 @@ class DeepQNetwork:
         plt.xlabel('episode')
         plt.savefig('cost.png')
         #plt.show()
+        plt.clf()
 
     def plot_reward(self):
         plt.plot(np.arange(len(self.reward_his)), self.reward_his)
@@ -262,3 +263,4 @@ class DeepQNetwork:
         plt.xlabel('episode')
         plt.savefig('reward.png')
         #plt.show()
+        plt.clf()
