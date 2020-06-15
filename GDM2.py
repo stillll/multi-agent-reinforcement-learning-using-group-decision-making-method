@@ -310,7 +310,7 @@ class GDM(CoopSet):
             if done:
                 break
         if len(self.reward_his) > 0:
-            cumulate_reward = 0.9*self.reward_his[-1] + cumulate_reward
+            cumulate_reward = 0.9*self.reward_his[-1] + 0.1*cumulate_reward
         self.reward_his.append(cumulate_reward)
         print("reward:", cumulate_reward)
         #q_action = self.sess.run(self.s_,feed_dict={dadada})

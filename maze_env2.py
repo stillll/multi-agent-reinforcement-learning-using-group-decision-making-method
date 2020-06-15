@@ -264,8 +264,8 @@ class Maze(tk.Tk, object):
         reward = self.last_dis - dis - self.n_agents*self.n_agents
         self.last_dis = dis
 
-        #if done:
-            #reward = self.n_agents*self.n_agents*self.maze_h*self.maze_w*100
+        if done:
+            reward = self.n_agents*self.n_agents*(self.maze_h+self.maze_w)/4
 
         if self.done:
             done_final = True
